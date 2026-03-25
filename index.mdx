@@ -7,6 +7,19 @@ description: "Public integration docs for the Apiosk gateway."
 
 The Apiosk gateway is a pay-per-call API surface for agents and applications. Consumers discover APIs, inspect machine-readable metadata, receive an `HTTP 402` payment challenge when required, attach an `x-payment` proof, and execute calls through a uniform contract.
 
+## At a glance
+
+The gateway acts as a public x402 payment boundary. A client requests execution, receives pricing in a `402 Payment Required` response when the route is paid, settles in USDC, retries with a proof, and then receives the upstream result through the same public surface.
+
+![x402 crypto rail flow](/images/x402-crypto-rail-flow.svg)
+
+This is the fastest way to understand the model:
+
+1. The agent makes a normal request to the gateway.
+2. The gateway returns `HTTP 402` plus pricing when payment is required.
+3. The client settles on-chain and attaches the proof in `x-payment`.
+4. The gateway verifies the proof, forwards the call, and returns data.
+
 ## Public routes that matter
 
 | Route | Purpose |
