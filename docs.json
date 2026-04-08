@@ -73,6 +73,7 @@
             "group": "Consumers",
             "pages": [
               "guides/consumers",
+              "guides/mcp-clients",
               "guides/execute",
               "guides/execute-capabilities",
               "guides/payment-options",

@@ -1,0 +1,124 @@
+---
+title: "Claude Code and Codex"
+description: "Install Apiosk as an MCP server in Claude Code or Codex with one command."
+---
+
+# Claude Code and Codex
+
+Apiosk ships a public MCP package so people can add it to Claude Code or Codex with one command. Once connected, the client can use live Apiosk tools like `apiosk_help`, `apiosk_search`, `apiosk_get_api`, `apiosk_execute`, `apiosk_get_started`, and dynamic API-specific tools generated from the catalog.
+
+## Claude Code
+
+Add Apiosk:
+
+```bash
+claude mcp add apiosk -- npx -y apiosk-mcp-server
+```
+
+Check the saved server:
+
+```bash
+claude mcp get apiosk
+```
+
+List configured MCP servers:
+
+```bash
+claude mcp list
+```
+
+## Codex
+
+Add Apiosk:
+
+```bash
+codex mcp add apiosk -- npx -y apiosk-mcp-server
+```
+
+Check the saved server:
+
+```bash
+codex mcp get apiosk
+```
+
+List configured MCP servers:
+
+```bash
+codex mcp list
+```
+
+## What each command does
+
+- `add` registers the Apiosk MCP server in your local client config.
+- `get` shows the saved configuration for `apiosk` and whether the client can connect.
+- `list` shows configured MCP servers. It does not list internal Apiosk tools one by one.
+
+## First-run setup in local stdio mode
+
+If you use the npm package locally, the fastest way to get from install to a working paid-capable setup is to call `apiosk_get_started`.
+
+Create a local wallet automatically, discover the catalog, and run a small test call:
+
+```json
+{
+  "wallet_label": "My Apiosk wallet",
+  "test_slug": "agent-json-diff",
+  "test_input": {
+    "before": { "ok": true },
+    "after": { "ok": false }
+  }
+}
+```
+
+Or import a dashboard connect string and verify it immediately:
+
+```json
+{
+  "connect_string": "export APIO_GATEWAY_URL=https://gateway.apiosk.com\nexport APIO_CHAIN_ID=8453\nexport APIO_AGENT_WALLET_ADDRESS=0x...\nexport APIO_CONNECT_TOKEN=aw_...\nexport APIO_CONNECT_AUTHORIZATION=Bearer aw_...\nexport APIO_CONNECT_HEADER_NAME=X-Apiosk-Connect-Token",
+  "test_slug": "agent-json-diff",
+  "test_input": {
+    "before": { "ok": true },
+    "after": { "ok": false }
+  },
+  "create_wallet": false
+}
+```
+
+`apiosk_get_started` is only available in local stdio mode because it saves local wallet or connect-token state under `~/.apiosk`.
+
+## Hosted HTTP alternative
+
+If you prefer the hosted MCP endpoint instead of the npm package, use the public URL:
+
+### Claude Code
+
+```bash
+claude mcp add --transport http apiosk https://mcp.apiosk.com/mcp
+claude mcp get apiosk
+```
+
+### Codex
+
+```bash
+codex mcp add apiosk --url https://mcp.apiosk.com/mcp
+codex mcp get apiosk
+```
+
+## Paid API access
+
+Installing the MCP server is public. Some paid Apiosk routes still require a valid payment or auth mode when a tool actually calls them.
+
+For the local npm package, `apiosk_get_started` is the recommended entrypoint because it can save a connect string locally or create a wallet and then prove the setup with a first execute call.
+
+Common environment variables:
+
+- `APIOSK_PRIVATE_KEY`
+- `APIOSK_CONNECT_TOKEN`
+- `APIOSK_CONNECT_AUTHORIZATION`
+- `APIOSK_X_PAYMENT`
+
+## Related links
+
+- Hosted MCP endpoint: [https://mcp.apiosk.com/mcp](https://mcp.apiosk.com/mcp)
+- npm package: [https://www.npmjs.com/package/apiosk-mcp-server](https://www.npmjs.com/package/apiosk-mcp-server)
+- Consumer guide: [/guides/consumers](/guides/consumers)

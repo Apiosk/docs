@@ -5,6 +5,8 @@ description: "Fastest path to discover an API, handle payment, and execute a req
 
 # Quickstart
 
+If you want to wire Apiosk directly into Claude Code or Codex as an MCP server, start with [Claude Code and Codex](/guides/mcp-clients). In local stdio mode, the recommended first step is `apiosk_get_started`, which can save a dashboard connect string or create a local wallet and then immediately run a test call.
+
 ## 1. Find a listing
 
 ```bash
@@ -46,6 +48,8 @@ At that point you can either:
 
 - attach a raw `x-payment` proof from your own payer flow
 - use a dashboard-managed wallet or connect string flow
+
+For local MCP installs, prefer `apiosk_get_started` over manually managing the first paid call. It will set up the local wallet or saved connect-token state and tell you whether the next step is `ready`, `needs_funding`, or more specific input.
 
 ## 5. Read the normalized result
 

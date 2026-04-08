@@ -17,6 +17,8 @@ Best when you want the easiest operational flow.
 
 Use this when the operator wants a smoother repeated-call workflow.
 
+If you are using the local Apiosk MCP package, import that connect string through `apiosk_get_started` so the package can save it locally and verify the setup with a first call.
+
 ## 2. Raw x402 proof flow
 
 Best when you want direct control of the payer.
@@ -37,3 +39,4 @@ Some routes can be configured as free. In those cases the gateway does not requi
 - use managed wallet mode for operator dashboards and repeated agent workflows
 - use raw x402 mode for protocol-level integrations and explicit payment control
 - use unpaid mode only when the listing or endpoint is intentionally public
+- for local MCP installs, start with `apiosk_get_started` and let it tell you whether you are ready or still need funding

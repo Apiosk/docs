@@ -5,6 +5,8 @@ description: "How agents and applications discover APIs, inspect metadata, attac
 
 # Consumer Guide
 
+If you are integrating through the Apiosk MCP package in local stdio mode, run `apiosk_get_started` first. It can save a dashboard connect string or create a local wallet, then verify the setup with discovery plus a first execute attempt.
+
 ## 1. Discover a listing
 
 Start with the public catalog.
@@ -64,6 +66,8 @@ curl -X POST https://gateway.apiosk.com/graph-nexus-api/execute \
 Paid routes return `HTTP 402` with a machine-readable requirement. Your payer signs that requirement and sends the resulting proof in the `x-payment` header.
 
 The gateway does not require API keys for this flow.
+
+If you are using the local MCP package, you normally do not need to build this first step by hand. `apiosk_get_started` configures the local payment state and tells you if the setup is ready or still needs wallet funding.
 
 ## 5. Read the normalized response
 
