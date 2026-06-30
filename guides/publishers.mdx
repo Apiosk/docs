@@ -5,6 +5,11 @@ description: "How to register, inspect, update, and manage community API listing
 
 # Publisher Guide
 
+Registering a listing also puts a payment check in front of your endpoint: the
+gateway returns `402` to unpaid callers and only forwards paid requests to your
+origin. If your goal is to gate a skill, download, or service behind payment,
+see [Payment Checks](/guides/payment-check).
+
 ## Signed wallet headers
 
 Management routes use signed wallet headers:

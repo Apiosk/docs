@@ -49,7 +49,8 @@
               "overview/quickstart",
               "overview/payment-model",
               "overview/terminology",
-              "overview/faq"
+              "overview/faq",
+              "overview/changelog"
             ]
           },
           {
@@ -74,6 +75,8 @@
             "pages": [
               "guides/consumers",
               "guides/mcp-clients",
+              "guides/sdk",
+              "guides/gateway-skill",
               "guides/execute",
               "guides/execute-capabilities",
               "guides/payment-options",
@@ -86,6 +89,7 @@
             "group": "Publishers",
             "pages": [
               "guides/publishers",
+              "guides/payment-check",
               "guides/publisher-lifecycle",
               "guides/listing-metadata"
             ]

@@ -1,0 +1,134 @@
+---
+title: "Gateway Skill"
+description: "Install the Apiosk gateway skill so coding agents like Claude Code and Codex can run paid gateway requests from a shell."
+---
+
+# Gateway Skill
+
+The Apiosk gateway skill is an installable skill for coding agents — Claude Code,
+Codex, and other shell-capable agents — that need to run paid gateway requests
+without wiring up an MCP server. The skill teaches the agent the gateway's HTTP
+contract: discover an API, preflight for free, make a paid call, and read the
+receipt headers.
+
+The agent never holds funds or signs payments. A buyer connects a budget once
+and mints a connect token; the gateway settles each call on the buyer's behalf
+over USDC (x402 on Base) or SEPA.
+
+## Install
+
+```bash
+npx skills add Apiosk/openclaw-apiosk --skill apiosk-gateway
+```
+
+A starter kit with a runnable example lives at
+[github.com/Apiosk/apiosk-x402-starter](https://github.com/Apiosk/apiosk-x402-starter).
+
+## Setup (one time)
+
+1. The buyer creates a connection and mints a **connect token** at
+   [buyer.apiosk.com](https://buyer.apiosk.com). It binds a budget, wallet(s),
+   and/or a SEPA mandate.
+2. Provide the token to the skill through the `APIOSK_CONNECT_TOKEN` environment
+   variable.
+3. The endpoints are fixed — no other config is needed:
+   - Gateway: `https://gateway.apiosk.com`
+   - MCP: `https://mcp.apiosk.com/mcp`
+
+<Warning>
+The connect token is a production credential. Never print it, echo it in tool
+output, commit it, or include it in a summary. Read it from the environment.
+</Warning>
+
+Every request authenticates with one header (pick one and keep it consistent):
+
+```text
+X-Apiosk-Connect-Token: $APIOSK_CONNECT_TOKEN
+# or
+Authorization: Bearer $APIOSK_CONNECT_TOKEN
+```
+
+## The core loop
+
+> **self-check → discover → preflight → call (with idempotency key) → log the
+> receipt.** Apiosk handles rail selection, settlement, retries, and the bank.
+
+### 1. Self-check — budget and rails
+
+```bash
+curl -s https://gateway.apiosk.com/v1/me \
+  -H "X-Apiosk-Connect-Token: $APIOSK_CONNECT_TOKEN"
+```
+
+Returns the authorized rails, wallet caps with `spent_today`, and SEPA caps.
+
+### 2. Discover APIs
+
+```bash
+curl -s "https://gateway.apiosk.com/v1/apis?search=weather&limit=20" \
+  -H "X-Apiosk-Connect-Token: $APIOSK_CONNECT_TOKEN"
+
+# Inspect one API: operations, per-operation price, input/output schema
+curl -s https://gateway.apiosk.com/v1/apis/weather \
+  -H "X-Apiosk-Connect-Token: $APIOSK_CONNECT_TOKEN"
+```
+
+Budget from `operations[i].price_usd`, not the top-level `price_usd` —
+multi-endpoint APIs differ per operation.
+
+### 3. Preflight (free dry-run)
+
+```bash
+curl -s "https://gateway.apiosk.com/weather/current?city=Amsterdam" \
+  -H "X-Apiosk-Connect-Token: $APIOSK_CONNECT_TOKEN" \
+  -H "X-Apiosk-Dry-Run: 1"
+```
+
+Read `would_succeed` and `reason_if_not`. Preflight never touches the chain or
+increments counters. Always preflight calls above $0.10 or batches of more than
+five calls to the same slug.
+
+### 4. Make the paid call
+
+```bash
+curl -s "https://gateway.apiosk.com/weather/current?city=Amsterdam" \
+  -H "X-Apiosk-Connect-Token: $APIOSK_CONNECT_TOKEN" \
+  -H "Idempotency-Key: $(uuidgen)" -D -
+```
+
+Use a fresh UUID per logical call. Reuse the same key only to safely retry a
+5xx or timeout — a replay returns the cached result with no second charge.
+
+### 5. Log the receipt
+
+Every paid response carries receipt headers. Trust the headers, not your
+prediction of the price.
+
+| Header | Meaning |
+| --- | --- |
+| `X-Apiosk-Payment-Rail` | `x402`, `sepa`, or `credits` |
+| `X-Apiosk-Price-Listed` | Authorized price (USDC, gross) — log this to trace spend |
+| `X-Apiosk-Tx-Hash` | Base transaction hash (USDC only) |
+| `X-Apiosk-Idempotent-Replay` | `true` means a cached replay, no new charge |
+
+## Golden rules
+
+- Self-check before paid work; preflight anything non-trivial.
+- One fresh `Idempotency-Key` per logical call.
+- Never probe with real calls to learn a price — use `/v1/apis/{slug}` plus
+  preflight.
+- Never try to choose the rail or sign payments — the gateway does both.
+- Never expose `APIOSK_CONNECT_TOKEN` anywhere user-visible.
+
+## MCP instead of raw HTTP
+
+If your runtime speaks MCP, point it at `https://mcp.apiosk.com/mcp` with the
+same connect-token header. Same rails, same settlement, same receipts. See
+[/guides/mcp-clients](/guides/mcp-clients).
+
+## Related links
+
+- Consumer guide: [/guides/consumers](/guides/consumers)
+- MCP clients: [/guides/mcp-clients](/guides/mcp-clients)
+- Payment options: [/guides/payment-options](/guides/payment-options)
+- Errors and retries: [/guides/errors-and-retries](/guides/errors-and-retries)

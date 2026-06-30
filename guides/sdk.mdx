@@ -1,0 +1,170 @@
+---
+title: "JavaScript SDK"
+description: "Use @apiosk/sdk to discover, pay for, and execute gateway APIs from Node backends with typed 402 handling and automatic x402 retries."
+---
+
+# JavaScript SDK
+
+`@apiosk/sdk` is the official JavaScript client for the Apiosk gateway. It wraps
+discovery, the `402 Payment Required` loop, and execution behind a small typed
+client so application code does not have to assemble the raw HTTP flow by hand.
+
+Use it when your software runs in a Node backend and you want gateway calls,
+typed payment errors, and optional automatic on-chain settlement in one package.
+
+## Install
+
+```bash
+npm install @apiosk/sdk
+```
+
+Requires Node 20 or newer (the SDK uses the global `fetch`). You can also inject
+your own `fetch` implementation through the constructor.
+
+## Quick start
+
+```js
+import { ApioskClient } from "@apiosk/sdk";
+
+const client = new ApioskClient();
+
+const catalog = await client.listApis({ search: "diff", limit: 5 });
+const metadata = await client.getMetadata("agent-json-diff");
+
+const result = await client.execute("agent-json-diff", {
+  before: { ok: true },
+  after: { ok: false },
+});
+
+console.log(catalog.meta.total);
+console.log(metadata.execute.default_operation);
+console.log(result.result);
+```
+
+Discovery calls (`listApis`, `getApi`, `getMetadata`) are public and need no
+credentials. `execute` only needs credentials when the route is paid.
+
+## Auto-pay with x402
+
+If you provide a Base wallet private key, the client automatically settles
+`402 Payment Required` responses using Coinbase's x402 packages and retries the
+call with the resulting proof. Your code just awaits the result.
+
+```js
+import { ApioskClient } from "@apiosk/sdk";
+
+const client = new ApioskClient({
+  privateKey: process.env.APIOSK_PRIVATE_KEY,
+});
+
+const response = await client.execute("agent-json-diff", {
+  before: { ok: true },
+  after: { ok: false },
+});
+```
+
+The private key stays in your process and signs payments locally — it is never
+sent to the gateway.
+
+## Alternative auth modes
+
+For dashboard-managed access, pass a connect token or an explicit authorization
+header instead of a private key:
+
+```js
+const client = new ApioskClient({
+  connectToken: process.env.APIOSK_CONNECT_TOKEN,
+});
+```
+
+```js
+const client = new ApioskClient({
+  authorization: `Bearer ${process.env.APIOSK_BEARER_TOKEN}`,
+});
+```
+
+If you already have an `x-payment` proof from your own payer flow, you can attach
+it directly with the `xPayment` option.
+
+### Constructor options
+
+| Option | Purpose |
+| --- | --- |
+| `baseUrl` | Gateway base URL. Defaults to `https://gateway.apiosk.com`. |
+| `privateKey` | Base wallet key for automatic x402 settlement. |
+| `connectToken` | Dashboard connect token for managed-wallet access. |
+| `authorization` | Explicit `Authorization` header value. |
+| `xPayment` | A pre-built `x-payment` proof to attach as-is. |
+| `connectHeaderName` | Override the connect-token header name. Defaults to `x-apiosk-connect-token`. |
+| `headers` | Extra headers merged into every request. |
+| `fetch` | Custom `fetch` implementation (for non-global-fetch runtimes). |
+
+## API surface
+
+| Method | Maps to |
+| --- | --- |
+| `listApis(params)` | `GET /v1/apis` — search and paginate listings. |
+| `getApi(slug)` | `GET /v1/apis/:slug` — inspect one listing. |
+| `getMetadata(slug)` | `GET /:slug/metadata` — agent-native metadata. |
+| `execute(slug, input, options)` | `POST /:slug/execute` — default operation. |
+| `executeOperation(slug, operation, input, options)` | `POST /:slug/execute` with an explicit operation. |
+| `passthrough(slug, path, options)` | `/:slug/*path` — provider-specific shape. |
+
+```js
+// Explicit operation
+const extracted = await client.executeOperation("graph-nexus-api", "extract", {
+  text: "OpenAI partnered with Microsoft to scale AI infrastructure.",
+});
+
+// Passthrough for provider-specific routes
+const raw = await client.passthrough("vision-flux-v4", "/v2/detect", {
+  method: "POST",
+  body: { image_url: "https://example.com/photo.jpg" },
+});
+```
+
+## Errors
+
+The SDK throws typed errors so callers can branch on payment state:
+
+| Error | When |
+| --- | --- |
+| `ApioskError` | Base error class for all SDK failures. |
+| `ApioskHttpError` | Any non-2xx gateway response. Carries the response context. |
+| `ApioskPaymentRequiredError` | A `402` that could not be settled automatically. |
+
+`ApioskPaymentRequiredError` includes the parsed `402` body, so a caller that is
+not using the built-in EVM flow can inspect the accepted payment rails and
+attach its own proof.
+
+```js
+import { ApioskClient, ApioskPaymentRequiredError } from "@apiosk/sdk";
+
+const client = new ApioskClient(); // no payer configured
+
+try {
+  await client.execute("agent-json-diff", { before: {}, after: {} });
+} catch (err) {
+  if (err instanceof ApioskPaymentRequiredError) {
+    console.log(err.body.accepts); // payment requirements to satisfy
+  }
+}
+```
+
+## Related packages
+
+The gateway client is intentionally separate from the merchant checkout UI:
+
+- `@apiosk/checkout-core` — shared checkout schema and intent helpers
+- `@apiosk/checkout-web` — plain HTML and custom-element checkout
+- `@apiosk/checkout-react` — React and Next.js apps
+- `@apiosk/checkout-vue` — Vue apps
+- `apiosk` (Python) — server-side intent creation, webhook verification, and
+  status polling
+
+## Related links
+
+- Consumer guide: [/guides/consumers](/guides/consumers)
+- Execute contract: [/guides/execute](/guides/execute)
+- Payment options: [/guides/payment-options](/guides/payment-options)
+- Errors and retries: [/guides/errors-and-retries](/guides/errors-and-retries)

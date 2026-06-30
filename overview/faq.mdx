@@ -37,6 +37,26 @@ It means the listing exposes structured agent-facing metadata such as operations
 
 Use passthrough only when you intentionally need the provider-specific route shape or response format.
 
+## Which integration path should I use?
+
+Four paths share the same payment flow: the raw [Gateway API](/guides/consumers) for maximum control, the [remote MCP endpoint](/guides/mcp-clients) for chat-native agents, the [JavaScript SDK](/guides/sdk) for Node backends, and the [Gateway Skill](/guides/gateway-skill) for coding agents working from a shell.
+
+## How do I charge for my own skill or service?
+
+Put a payment check in front of it. The simplest way is to publish it as a listing so the gateway returns `402 Payment Required` for unpaid requests and only forwards paid ones to your origin — no payment code on your side. See [Payment Checks](/guides/payment-check).
+
+## What does Apiosk charge per call?
+
+On the USDC rail, Apiosk takes a flat **2%** platform fee at the moment of settlement on Base — publishers receive 98% of each call. The split is enforced by the on-chain `ApioskSettlement` contract, so it is verifiable from any block explorer. The fee was reduced from 10% to 2% so that publishers keep substantially more of each call.
+
+## What does Apiosk charge on SEPA?
+
+Nothing per transaction. SEPA Direct Debit is priced as a monthly subscription tier — only Mollie's standard SEPA fee applies on the bank side.
+
+## Can I force a specific payment rail?
+
+Yes. Send `X-Payment-Rail: x402`, `X-Payment-Rail: sepa`, or `X-Payment-Rail: credits` on the request. If you omit the header, the gateway picks the cheapest viable rail for the buyer and falls back automatically if the preferred rail is unavailable.
+
 ## Where should I put private implementation details?
 
 Nowhere in the public docs, listing metadata, or endpoint docs. Keep private infrastructure, secrets, and internal runbooks out of the public documentation surface.

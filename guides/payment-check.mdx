@@ -1,0 +1,147 @@
+---
+title: "Payment Checks (Gate a Skill or Service)"
+description: "How to gate access to a paid skill, download, or execution behind an Apiosk payment check so unpaid requests get 402 Payment Required and paid ones are served."
+---
+
+# Payment Checks
+
+A payment check is the gate you put in front of anything you want to charge for —
+a skill, a tool, a file download, or a unit of compute. Before you return,
+download, or execute the paid resource, you ask one question:
+
+```text
+Is this request paid?
+├─ Yes → allow access (serve the skill / download / result)
+└─ No  → return Payment Required
+```
+
+This is the seller side of the same `402 Payment Required` boundary that
+consumers see. A platform that distributes paid skills — for example, an agent
+host that runs a marketplace of skills — wires this check in front of each paid
+skill so that only paid requests reach it. Apiosk gives you two ways to
+implement it.
+
+## Approach 1 — Let the gateway be the payment check (recommended)
+
+The simplest way to run the check is to **not write it yourself**. Publish your
+resource as an Apiosk listing. The gateway then performs the payment check on
+every request:
+
+- An unpaid request gets `HTTP 402 Payment Required` with machine-readable
+  pricing. Your origin is never called.
+- A paid request is verified and settled, then forwarded to your origin — so
+  your skill only ever runs for requests that have already paid.
+
+That maps the decision tree exactly, with zero payment code on your side:
+
+```text
+Request → Apiosk gateway
+            ├─ unpaid → 402 Payment Required  (origin not called)
+            └─ paid   → settle → forward to your skill → return result
+```
+
+Register the resource as a listing with its price:
+
+```bash
+curl -X POST https://gateway.apiosk.com/v1/apis/register \
+  -H "Content-Type: application/json" \
+  -H "x-wallet-address: <wallet>" \
+  -H "x-wallet-signature: <signature>" \
+  -H "x-wallet-timestamp: <timestamp>" \
+  -H "x-wallet-nonce: <nonce>" \
+  -d '{
+    "name": "My Paid Skill",
+    "slug": "my-paid-skill",
+    "endpoint_url": "https://example.com/skill",
+    "price_usd": 0.05,
+    "description": "Runs only for paid requests",
+    "owner_wallet": "<wallet>",
+    "category": "compute"
+  }'
+```
+
+Callers then reach your skill at `https://gateway.apiosk.com/my-paid-skill/...`.
+The gateway enforces payment; you keep 98% of each settled USDC call. See the
+[publisher guide](/guides/publishers) for the full registration and management
+flow, and the [payment model](/overview/payment-model) for fees and rails.
+
+Use this approach whenever you can put your resource behind an HTTPS origin that
+the gateway can forward to. It is the safest option because none of your code has
+to verify proofs or hold payment state.
+
+## Approach 2 — Run the check in your own code (advanced)
+
+If you host the resource yourself and cannot route it through the gateway, run
+the check inline. Apiosk follows the open [x402](https://www.x402.org) standard,
+so the gate is a standard `402` flow:
+
+1. A request arrives for the paid resource.
+2. If it does **not** carry a valid `x-payment` proof, respond with
+   `HTTP 402 Payment Required` and a body describing what payment is accepted.
+3. The caller pays and retries the same request with the proof in `x-payment`.
+4. Verify the proof, then serve the resource.
+
+The `402` body is the standard x402 `PaymentRequiredResponse`:
+
+```json
+{
+  "error": "Payment required",
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "base",
+      "maxAmountRequired": "50000",
+      "resource": "https://example.com/skill",
+      "description": "My Paid Skill",
+      "mimeType": "application/json",
+      "payTo": "0xYourReceivingWallet",
+      "maxTimeoutSeconds": 60,
+      "asset": "0x...USDC",
+      "extra": { "name": "USDC", "version": "2" }
+    }
+  ],
+  "x402Version": 1
+}
+```
+
+A minimal gate looks like this:
+
+```js
+// Pseudocode: gate a paid skill behind a payment check
+async function handlePaidSkill(req, res) {
+  const proof = req.headers["x-payment"];
+
+  // Is this request paid?
+  if (!proof || !(await verifyPayment(proof))) {
+    // No → return Payment Required
+    return res.status(402).json({
+      error: "Payment required",
+      accepts: [paymentRequirement],
+      x402Version: 1,
+    });
+  }
+
+  // Yes → allow access
+  return res.status(200).json(await runSkill(req.body));
+}
+```
+
+`verifyPayment` settles and verifies the proof through an x402 facilitator before
+you serve. Building and verifying proofs yourself is more work than Approach 1 —
+prefer publishing a listing unless you specifically need to keep the resource on
+your own host.
+
+## Which approach to use
+
+| You want to… | Use |
+| --- | --- |
+| Charge for an HTTPS endpoint with no payment code | Approach 1 — publish a listing |
+| Keep the resource on your own host and enforce inline | Approach 2 — self-hosted `402` gate |
+| Charge per call and keep 98% of USDC settlement | Approach 1 — publish a listing |
+
+## Related links
+
+- Payment model: [/overview/payment-model](/overview/payment-model)
+- Publisher guide: [/guides/publishers](/guides/publishers)
+- Errors and retries: [/guides/errors-and-retries](/guides/errors-and-retries)
+- Consumer side of the same boundary: [/guides/consumers](/guides/consumers)

@@ -20,6 +20,41 @@ This is the fastest way to understand the model:
 3. The client settles on-chain and attaches the proof in `x-payment`.
 4. The gateway verifies the proof, forwards the call, and returns data.
 
+## Ways to integrate
+
+Pick the path that fits where your software runs. Same payment flow, four ways to
+wire it up.
+
+| Path | Best for | Guide |
+| --- | --- | --- |
+| **Gateway API** (direct HTTP) | Maximum control over headers, retries, and the raw `402` loop | [/guides/consumers](/guides/consumers) · [/guides/execute](/guides/execute) |
+| **Remote MCP** | ChatGPT and agent clients — add the URL, OAuth once, run paid tools | [/guides/mcp-clients](/guides/mcp-clients) |
+| **JavaScript SDK** (`@apiosk/sdk`) | Node backends that want typed `402` errors and auto-pay | [/guides/sdk](/guides/sdk) |
+| **Gateway Skill** | Coding agents (Claude Code, Codex) running paid calls from a shell | [/guides/gateway-skill](/guides/gateway-skill) |
+
+If you sell access instead of buying it — gating a skill, download, or service
+behind payment — see [Payment Checks](/guides/payment-check).
+
+## GPT-native MCP quickstart
+
+If you are integrating Apiosk into ChatGPT or another remote MCP client, do not start with raw gateway calls. Start with the hosted MCP endpoint instead:
+
+```text
+https://mcp.apiosk.com/mcp
+```
+
+The remote MCP flow is:
+
+1. Add the hosted MCP endpoint to your GPT client.
+2. Complete hosted OAuth with your Apiosk dashboard account.
+3. Use discovery and paid tools from the same chat session.
+
+Important behavior:
+
+- No handoff file is required for GPT-native MCP clients.
+- Direct gateway plus `X-Apiosk-Connect-Token` is still the right path for manual HTTP runtimes and raw x402 flows.
+- Full setup instructions live in [/guides/mcp-clients](/guides/mcp-clients).
+
 ## Public routes that matter
 
 | Route | Purpose |
