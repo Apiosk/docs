@@ -7,8 +7,9 @@ description: "Side-by-side comparison of managed wallet mode, raw x402 mode, and
 
 | Mode | Best for | Strengths | Tradeoff |
 | --- | --- | --- | --- |
-| Managed wallet | operator workflows | easiest repeated paid-call flow | less explicit than raw x402 |
-| Raw x402 | protocol-level integrations | maximum control over payment proofs | more implementation work |
+| Managed wallet (USDC) | operator workflows | easiest repeated paid-call flow, 2% platform fee | less explicit than raw x402 |
+| Raw x402 (USDC) | protocol-level integrations | maximum control over payment proofs, 2% platform fee | more implementation work |
+| SEPA Direct Debit | EU buyers needing bank settlement | euro IBAN settlement, no per-transaction Apiosk fee | monthly subscription, T+1/T+2 settlement |
 | Free routes | public access or demos | no payment flow needed | no payment enforcement |
 
 ## Managed wallet
@@ -27,6 +28,16 @@ Use when:
 - you need to prove the 402 -> proof -> retry loop explicitly
 - you are integrating outside the managed wallet tooling
 
+## SEPA Direct Debit
+
+Use when:
+
+- the buyer is an EU business that needs euro-denominated bank settlement
+- a recurring B2B payment relationship under an IBAN mandate is preferable to on-chain settlement
+- you prefer a monthly subscription with no per-transaction platform fee
+
+Send `X-Payment-Rail: sepa` to pin the rail explicitly. Per-call debits are batched in the gateway's SEPA settlement ledger and reconciled by Mollie on the bank side.
+
 ## Free routes
 
 Use when:
@@ -37,4 +48,4 @@ Use when:
 
 ## Recommendation
 
-For most operators, start with managed wallet mode. Use raw x402 when protocol control is the primary need.
+For most operators, start with managed wallet mode (USDC). Use raw x402 when protocol control is the primary need. Use the SEPA rail when the buyer requires euro bank-side settlement.

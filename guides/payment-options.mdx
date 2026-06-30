@@ -5,7 +5,7 @@ description: "Public-safe overview of the supported payment paths: managed walle
 
 # Payment Options
 
-There are three public payment modes you can reason about safely.
+There are four public payment modes you can reason about safely.
 
 ## 1. Dashboard-managed wallet
 
@@ -30,7 +30,20 @@ Best when you want direct control of the payer.
 
 Use this when you already have your own payment orchestration or want the most explicit proof path.
 
-## 3. Unpaid routes
+## 3. SEPA Direct Debit rail
+
+Best when the buyer is an EU business that prefers bank-side settlement instead of on-chain USDC.
+
+- sign a SEPA mandate once via the buyer portal
+- the gateway debits the buyer's IBAN through Mollie for paid calls covered by the mandate
+- pricing is a monthly subscription tier — Apiosk takes no per-transaction percentage on SEPA
+- per-call debits are batched in a settlement ledger and reconciled on the bank side
+
+Use this when the buyer needs euro-denominated settlement, an IBAN paper trail, or already has a Mollie relationship.
+
+You can pin the rail per request with `X-Payment-Rail: sepa`. If you omit the header, the gateway auto-selects the cheapest viable rail and falls back when the preferred rail is unavailable.
+
+## 4. Unpaid routes
 
 Some routes can be configured as free. In those cases the gateway does not require payment before forwarding the request.
 
@@ -38,5 +51,6 @@ Some routes can be configured as free. In those cases the gateway does not requi
 
 - use managed wallet mode for operator dashboards and repeated agent workflows
 - use raw x402 mode for protocol-level integrations and explicit payment control
+- use the SEPA rail when the buyer needs euro-denominated bank settlement
 - use unpaid mode only when the listing or endpoint is intentionally public
 - for local MCP installs, start with `apiosk_get_started` and let it tell you whether you are ready or still need funding

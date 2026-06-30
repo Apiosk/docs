@@ -1,11 +1,68 @@
 ---
-title: "Claude Code and Codex"
-description: "Install Apiosk as an MCP server in Claude Code or Codex with one command."
+title: "MCP Clients"
+description: "Connect Apiosk to ChatGPT, Claude Code, Codex, and other MCP clients."
 ---
 
-# Claude Code and Codex
+# MCP Clients
 
-Apiosk ships a public MCP package so people can add it to Claude Code or Codex with one command. Once connected, the client can use live Apiosk tools like `apiosk_help`, `apiosk_search`, `apiosk_get_api`, `apiosk_execute`, `apiosk_get_started`, and dynamic API-specific tools generated from the catalog.
+Apiosk supports both hosted remote MCP and local stdio MCP. Once connected, the client can use live Apiosk tools like `apiosk_help`, `apiosk_search`, `apiosk_get_api`, `apiosk_execute`, `apiosk_get_started`, and dynamic API-specific tools generated from the catalog.
+
+## GPT-native clients
+
+If you are connecting Apiosk to ChatGPT or another remote MCP client, use the hosted endpoint:
+
+```text
+https://mcp.apiosk.com/mcp
+```
+
+Fallback if your apex proxy is deployed:
+
+```text
+https://apiosk.com/mcp
+```
+
+### Quick setup
+
+1. Add `https://mcp.apiosk.com/mcp` as the remote MCP server in ChatGPT Developer Mode or another GPT-native MCP client.
+2. Complete the hosted OAuth sign-in with your Apiosk dashboard account.
+3. Refresh the connector or start a new chat if the client cached older tool definitions.
+
+<details>
+  <summary>See a representative tool payload</summary>
+
+```json
+{
+  "tool": "bella-pizza",
+  "input": {
+    "type": "Tonno",
+    "size": "Small"
+  },
+  "response": {
+    "api": "bella-pizza",
+    "operation": "/orders",
+    "status": "success",
+    "payment_rail": "credits",
+    "result": {
+      "order_id": "94429859",
+      "address": "Saved address on file"
+    }
+  }
+}
+```
+</details>
+
+### How the hosted GPT flow works
+
+- Public discovery can be visible before sign-in.
+- Protected tools challenge for OAuth and unlock after login.
+- You do not need to upload a handoff file to use the MCP connector.
+- The handoff file is only for manual gateway calls and non-MCP runtimes.
+
+### Billing behavior
+
+- Hosted GPT-native MCP clients authenticate as your dashboard session.
+- Direct gateway calls with `X-Apiosk-Connect-Token` or local wallet-backed `x-payment` proofs remain the path for raw agent-wallet and x402 execution.
+- If you need a specific rail, choose the runtime and auth mode deliberately instead of assuming all clients settle the same way.
 
 ## Claude Code
 
@@ -86,7 +143,7 @@ Or import a dashboard connect string and verify it immediately:
 
 `apiosk_get_started` is only available in local stdio mode because it saves local wallet or connect-token state under `~/.apiosk`.
 
-## Hosted HTTP alternative
+## Hosted MCP alternative
 
 If you prefer the hosted MCP endpoint instead of the npm package, use the public URL:
 

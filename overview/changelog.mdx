@@ -1,0 +1,71 @@
+---
+title: "Changelog"
+description: "Public-facing record of notable Apiosk gateway changes."
+---
+
+# Changelog
+
+A summary of recent product changes that affect public integrators — consumers building against the gateway, publishers managing listings, and operators wiring agent wallets. Internal infrastructure work is intentionally omitted.
+
+## 2026-05 — Platform fee reduced to 2%
+
+The on-chain platform fee on the USDC rail dropped from **10% to 2%**. Publishers now receive **98%** of every settled call.
+
+- enforced by the on-chain `ApioskSettlement` contract on Base at [`0x512c770Ef7B651298cBFA2Ab865A81C12F0c703d`](https://basescan.org/address/0x512c770Ef7B651298cBFA2Ab865A81C12F0c703d)
+- live default in the gateway runtime via `DEFAULT_COMMISSION_RATE` (0.02)
+- the change applies retroactively to all USDC settlements after the contract update
+- SEPA rail is unaffected — it remains a monthly subscription with no per-transaction Apiosk fee
+
+## 2026-05 — Force-rail header
+
+The gateway accepts an `X-Payment-Rail` header on paid requests to pin the settlement rail explicitly:
+
+- `X-Payment-Rail: x402` — settle on-chain in USDC on Base
+- `X-Payment-Rail: sepa` — settle via SEPA Direct Debit through Mollie
+- `X-Payment-Rail: credits` — debit pre-paid Apiosk credits
+
+Without the header the gateway selects the cheapest viable rail for the buyer and falls back automatically if the preferred rail is unavailable (for example, an underfunded managed wallet falls back to SEPA or credits when both are configured).
+
+## 2026-05 — Dedicated preflight route
+
+A dry-run preflight endpoint is available so agents can check whether a paid call will succeed before they trigger it. The preflight returns the resolved price, the selected rail, and any fundability or mandate gaps — without forwarding the call upstream or charging the buyer.
+
+Recommended usage:
+
+- preflight calls above **$0.10** before executing
+- preflight batches of more than 5 calls to the same listing in a short window
+
+## 2026-05 — SEPA Direct Debit rail
+
+The gateway settles paid calls via SEPA Direct Debit (in addition to USDC over x402). Per-call debits accumulate in a settlement ledger on the gateway side and are reconciled by a batch worker through Mollie on the bank side.
+
+What this means for integrators:
+
+- EU buyers can sign a SEPA mandate once via the buyer portal and let the gateway handle per-call debits
+- Apiosk takes no per-transaction percentage on SEPA — pricing is a monthly subscription
+- a publisher does not need to choose a rail; the same listing accepts USDC and SEPA buyers transparently
+
+## 2026-05 — `/v1/me` and `/v1/me/sepa`
+
+New consumer-facing introspection endpoints:
+
+- `GET /v1/me` — returns the resolved identity, plan, balance, and rail configuration for the caller
+- `GET /v1/me/sepa` — returns SEPA mandate state and outstanding ledger balance
+
+These let an integrator surface "is this buyer ready to transact?" without trial-and-error against paid routes.
+
+## 2026-04 — Public `/status` endpoint
+
+A public health endpoint that reports gateway availability, database ping latency, 7-day traffic, and the count of active listings. Suitable for status pages and uptime monitors. Authentication is not required.
+
+## 2026-04 — HMAC outbound signing (opt-in)
+
+Publishers can opt in to HMAC signing on outbound requests from the gateway to their origin. When enabled, the gateway adds a signature header derived from a shared secret so the publisher's origin can verify that the request was relayed by the gateway and not forged.
+
+## 2026-04 — Provider verification gate and payout proof constraints
+
+Publishers must complete provider verification before payouts unlock. Payout requests are gated on proof artefacts (e.g. confirmed wallet ownership, IBAN proof of life on the SEPA side) to keep payouts auditable.
+
+---
+
+If you need historical changes from before this changelog, or details on internal-only behaviour, talk to your Apiosk contact.

@@ -15,9 +15,12 @@ The gateway uses a simple public boundary:
 ## Public payment facts
 
 - network: Base
-- asset: USDC
+- asset: USDC (on-chain rail) or EUR via SEPA Direct Debit (bank rail)
 - challenge transport: `HTTP 402 Payment Required`
 - proof transport: `x-payment`
+- platform fee on USDC rail: **2%** (publishers receive 98% of each settled call)
+- platform fee on SEPA rail: none — Apiosk charges a monthly subscription instead of a per-transaction percentage
+- settlement contract on Base: [`0x512c770Ef7B651298cBFA2Ab865A81C12F0c703d`](https://basescan.org/address/0x512c770Ef7B651298cBFA2Ab865A81C12F0c703d)
 
 ## Payment modes you can use
 
@@ -28,6 +31,12 @@ Use the dashboard to create or import an agent wallet and generate a connect str
 ### Raw x402 mode
 
 Use your own payer and sign the challenge yourself. This is the cleanest option when you want direct control over the payment proof flow.
+
+### SEPA Direct Debit rail
+
+For EU operators who need bank-side settlement instead of on-chain USDC, the gateway supports SEPA Direct Debit via Mollie. Paid calls are debited from the buyer's IBAN under a mandate signed once in the buyer portal. SEPA is priced as a monthly subscription, not a per-transaction percentage.
+
+You can pin the rail explicitly per request with the `X-Payment-Rail` header (`x402`, `sepa`, or `credits`). If you omit it, the gateway selects the cheapest viable rail for the call.
 
 ### Unpaid routes
 
