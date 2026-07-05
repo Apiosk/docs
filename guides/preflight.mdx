@@ -1,0 +1,84 @@
+---
+title: "Preflight (Dry Run)"
+description: "Ask the gateway what a paid call would do — which rail, which wallet, whether it would succeed — without spending anything."
+---
+
+# Preflight (Dry Run)
+
+Preflight answers "**what would actually happen if I called this paid endpoint
+right now?**" It runs the same wallet selection, caps, and fundability checks as
+a real call, but performs **no on-chain transfer, no upstream call, and no
+settlement**. Use it before high-cost or batched calls so an agent can make a
+budget decision without probing with real money.
+
+## Two ways to preflight
+
+Add the dry-run header to any paid route:
+
+```bash
+curl -s "https://gateway.apiosk.com/weather/current?city=Amsterdam" \
+  -H "X-Apiosk-Connect-Token: $APIOSK_CONNECT_TOKEN" \
+  -H "X-Apiosk-Dry-Run: 1"
+```
+
+Or call the dedicated route with the same auth headers:
+
+```bash
+curl -s -X POST https://gateway.apiosk.com/v1/apis/weather/preflight \
+  -H "X-Apiosk-Connect-Token: $APIOSK_CONNECT_TOKEN"
+```
+
+Both return the same verdict. The response is marked with `X-Apiosk-Dry-Run: true`
+and is never cached.
+
+## The verdict
+
+```json
+{
+  "slug": "weather",
+  "operation": "/current",
+  "method": "GET",
+  "price_listed_usdc": 0.06,
+  "rail": "x402",
+  "wallet_to_use": "0x1234…abcd",
+  "would_succeed": true,
+  "reason_if_not": null,
+  "spent_after": {
+    "wallet_address": "0x1234…abcd",
+    "wallet_spent_today_usdc": 0.42,
+    "wallet_day_cap_usdc": 25,
+    "sepa_spent_today_eur": 0,
+    "sepa_day_cap_eur": null
+  },
+  "wallet_selection_strategy": "first_authorized_wallet_passing_caps_and_onchain_can_settle"
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `would_succeed` | Whether a real call would settle right now |
+| `reason_if_not` | Human-readable reason when `would_succeed` is `false` |
+| `rail` | `x402`, `sepa`, `credits`, `free`, or `unauthorized` |
+| `price_listed_usdc` | Authorized gross price for the operation |
+| `wallet_to_use` | The wallet the gateway would select (x402 rail) |
+| `spent_after` | Projected daily spend and caps after this call, per rail |
+| `wallet_selection_strategy` | How the gateway picks a wallet |
+
+<Note>
+Preflight models the x402 and SEPA rails; a real call may still settle over
+credits when preflight reports x402/sepa. Pin a rail with `X-Apiosk-Rail`
+(`x402` or `sepa`) to test one path in isolation.
+</Note>
+
+## When to preflight
+
+- Before any call above ~$0.10, or a batch of more than five calls to one slug.
+- After a budget or mandate change, to confirm the buyer is still ready.
+- Instead of a real call when you only need to learn the price — combine with
+  `GET /v1/apis/{slug}`.
+
+## Related links
+
+- Gateway skill: [/guides/gateway-skill](/guides/gateway-skill)
+- Payment options: [/guides/payment-options](/guides/payment-options)
+- Errors and retries: [/guides/errors-and-retries](/guides/errors-and-retries)

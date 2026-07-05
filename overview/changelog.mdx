@@ -7,6 +7,23 @@ description: "Public-facing record of notable Apiosk gateway changes."
 
 A summary of recent product changes that affect public integrators — consumers building against the gateway, publishers managing listings, and operators wiring agent wallets. Internal infrastructure work is intentionally omitted.
 
+## 2026-07 — Apiosk Connect (marketplace)
+
+Marketplaces can onboard their own merchants and bill each merchant's API as a **skill** over x402, with the payment split between merchant, marketplace, and Apiosk's 2% fee.
+
+- embeddable "Connect with Apiosk" onboarding using a publishable (`apk_pub_`) key
+- merchant wallet verification via Sign-In-With-Ethereum
+- server-to-server skill registration with a secret (`apk_live_`) key
+- see [/guides/connect-marketplace](/guides/connect-marketplace)
+
+## 2026-07 — Bazaar discovery
+
+Standalone gateway routes are now indexed into Coinbase's CDP x402 Bazaar after their first settled call, so agents can discover Apiosk endpoints there. Marketplace Connect skills stay private and are never indexed. See [/guides/bazaar-discovery](/guides/bazaar-discovery).
+
+## 2026-06 — Provider SDK keys
+
+Publishers can mint a long-lived `sk_live_` key to publish and manage listings headlessly — and to make paid calls — without a browser session or a per-request wallet signature. See [/guides/provider-sdk](/guides/provider-sdk).
+
 ## 2026-05 — Platform fee reduced to 2%
 
 The on-chain platform fee on the USDC rail dropped from **10% to 2%**. Publishers now receive **98%** of every settled call.

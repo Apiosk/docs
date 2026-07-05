@@ -1,0 +1,43 @@
+---
+title: "Bazaar Discovery"
+description: "How Apiosk gateway routes become discoverable to agents through Coinbase's CDP x402 Bazaar after their first settled payment."
+---
+
+# Bazaar Discovery
+
+Every paid Apiosk route already returns a **self-describing** `402` — the payment
+requirement carries the route's discovery metadata. After a route's first
+successful settlement, that metadata is indexed into Coinbase's **CDP x402
+Bazaar**, the public discovery layer for x402 resources. Agents that browse the
+Bazaar can then find and price Apiosk endpoints with no prior knowledge of them.
+
+## What gets indexed
+
+- **Standalone APIs only.** Published listings (`listing_type = api`) that have
+  settled at least one paid call are indexed under the platform payout address.
+- **Connect skills are never indexed.** Marketplace skills are private and
+  reachable only via their `charge_url` (see
+  [/guides/connect-marketplace](/guides/connect-marketplace)).
+
+## How a route gets there
+
+You do not call a discovery API to register — indexing is a side effect of
+normal operation:
+
+1. Publish and verify a listing (see [/guides/publishers](/guides/publishers)).
+2. The route serves a self-describing `402` automatically.
+3. On the first settled call, the Bazaar indexes the resource. New routes appear
+   within minutes.
+
+<Note>
+Because indexing keys off the first settlement, a listing that has never taken a
+paid call will not yet appear in the Bazaar. Nothing else is required — good
+listing metadata (see [/guides/listing-metadata](/guides/listing-metadata))
+simply makes the indexed entry more useful to agents.
+</Note>
+
+## Related links
+
+- Listing metadata: [/guides/listing-metadata](/guides/listing-metadata)
+- Consumer guide: [/guides/consumers](/guides/consumers)
+- Publishers: [/guides/publishers](/guides/publishers)

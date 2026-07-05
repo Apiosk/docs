@@ -74,9 +74,11 @@
             "group": "Consumers",
             "pages": [
               "guides/consumers",
+              "guides/bazaar-discovery",
               "guides/mcp-clients",
               "guides/sdk",
               "guides/gateway-skill",
+              "guides/preflight",
               "guides/execute",
               "guides/execute-capabilities",
               "guides/payment-options",
@@ -89,9 +91,16 @@
             "group": "Publishers",
             "pages": [
               "guides/publishers",
+              "guides/provider-sdk",
               "guides/payment-check",
               "guides/publisher-lifecycle",
               "guides/listing-metadata"
+            ]
+          },
+          {
+            "group": "Connect",
+            "pages": [
+              "guides/connect-marketplace"
             ]
           },
           {

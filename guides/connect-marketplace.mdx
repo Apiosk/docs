@@ -1,0 +1,141 @@
+---
+title: "Apiosk Connect (Marketplace)"
+description: "Let a marketplace onboard its own merchants and bill their APIs as skills over x402, with the payment split between merchant, marketplace, and Apiosk."
+---
+
+# Apiosk Connect (Marketplace)
+
+Apiosk Connect is the **marketplace track**. It lets a third-party marketplace
+plug its own merchants into the Apiosk payment rail without every merchant
+integrating the gateway directly. The marketplace owns the customer
+relationship; Apiosk provides embeddable onboarding, wallet verification, a
+per-call paywall, and the payout split.
+
+Connect is distinct from standalone publishing (see
+[/guides/publishers](/guides/publishers)). A **merchant's** billable product is
+called a **skill**, and every paid skill call is split three ways: the merchant,
+the marketplace, and Apiosk's 2% platform fee.
+
+<Note>
+Connect skills are **private**. They are reachable only through their own
+`charge_url` and never appear in the public catalog (`/v1/apis`) or in agent
+discovery. The two tracks share the payment rail, not the catalog.
+</Note>
+
+## Keys
+
+A marketplace mints two kinds of key from the portal:
+
+| Key | Prefix | Where it lives | Use |
+| --- | --- | --- | --- |
+| Secret key | `apk_live_` | server-side only | Register skills, read fees (server-to-server) |
+| Publishable key | `apk_pub_` | safe to embed in a web page | Powers the "Connect with Apiosk" embed |
+
+<Warning>
+The secret key is shown once at mint and stored only as a hash — it is never
+re-displayed. Keep `apk_live_` keys server-side; only `apk_pub_` keys are safe
+in client HTML.
+</Warning>
+
+## 1. Set up the marketplace
+
+Create a marketplace in the portal and mint the keys. The first key mint
+activates the marketplace.
+
+```bash
+# Secret key (server-side)
+curl -X POST https://gateway.apiosk.com/v1/marketplaces/{id}/api-keys \
+  -H "Authorization: Bearer <portal-session>"
+
+# Publishable key (embeddable)
+curl -X POST https://gateway.apiosk.com/v1/marketplaces/{id}/publishable-keys \
+  -H "Authorization: Bearer <portal-session>"
+```
+
+## 2. Onboard a merchant — "Connect with Apiosk"
+
+Drop the embed on your own site. The publishable key identifies the marketplace;
+the embed opens a hosted, signed onboarding session in the Apiosk portal.
+
+```html
+<script src="https://gateway.apiosk.com/embed.js"
+        data-apiosk-key="apk_pub_..."
+        data-apiosk-target="#apiosk-connect"></script>
+```
+
+The embed calls `POST /v1/connect/embed/start`, which validates the publishable
+key and returns a short-lived **merchant session**. The portal wizard then walks
+the merchant through three steps:
+
+1. **Profile** — `POST /v1/merchants/profile` saves display name and contact email.
+2. **Wallet** — `POST /v1/siwe/nonce` then `POST /v1/siwe/verify` prove control of
+   an EVM payout address via a Sign-In-With-Ethereum signature.
+3. **Activate** — `POST /v1/merchants/activate` requires a verified wallet and
+   flips the merchant to `active`.
+
+<Note>
+A merchant can only earn once it is **active** and has a verified payout wallet.
+Skill creation and every charge re-check this — an unverified merchant's skills
+cannot be charged.
+</Note>
+
+## 3. Publish a skill
+
+With the merchant onboarded, register that merchant's billable product
+server-to-server with your secret key. Include an `Idempotency-Key` so retries
+never create duplicates.
+
+```bash
+curl -X POST https://gateway.apiosk.com/v1/skills \
+  -H "Authorization: Bearer apk_live_..." \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "merchant_id": "<merchant-id>",
+    "external_skill_ref": "monthly-report",
+    "name": "Monthly report",
+    "price_amount": 1000000,
+    "price_currency": "USDC"
+  }'
+```
+
+The response returns the skill `id` and a `charge_url`. A skill snapshots the fee
+split and the merchant's wallet at creation, so later config changes never
+silently re-price an existing product. Use `PUT /v1/skills/{id}` to change price
+or the `active` flag.
+
+## 4. Charge a skill and split the payment
+
+An agent calls the skill's `charge_url`. Unpaid, it returns an x402 `402` that
+advertises the gross price and the split; with a valid `x-payment` proof the
+gateway verifies and settles.
+
+```bash
+# 402 with the payment requirement + split breakdown
+curl https://gateway.apiosk.com/v1/skills/{id}/charge
+
+# Pay it
+curl https://gateway.apiosk.com/v1/skills/{id}/charge \
+  -H "x-payment: <x402-proof>"
+```
+
+The gross amount settles once to the platform wallet, then two payout legs are
+queued — the **merchant** (its net share) and the **marketplace** (its fee) —
+while Apiosk keeps its 2%. The three amounts always sum to the gross:
+
+| Party | Share |
+| --- | --- |
+| Merchant | gross − marketplace fee − 2% |
+| Marketplace | its configured fee |
+| Apiosk | 2% platform fee |
+
+<Note>
+Connect settles once to the platform wallet and splits at payout time — there is
+no on-chain splitter contract to integrate.
+</Note>
+
+## Related links
+
+- Publishers (standalone): [/guides/publishers](/guides/publishers)
+- Payment model: [/overview/payment-model](/overview/payment-model)
+- Boundaries: [/guides/boundaries](/guides/boundaries)
