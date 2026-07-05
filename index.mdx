@@ -9,7 +9,7 @@ The Apiosk gateway is a pay-per-call API surface for agents and applications. Co
 
 ## At a glance
 
-The gateway acts as a public x402 payment boundary. A client requests execution, receives pricing in a `402 Payment Required` response when the route is paid, settles in USDC, retries with a proof, and then receives the upstream result through the same public surface.
+The gateway acts as a public x402 payment boundary. A client requests execution, receives pricing in a `402 Payment Required` response when the route is paid, settles in USDC on a supported network — Base and Solana are live, Polygon and Arbitrum coming soon — retries with a proof, and then receives the upstream result through the same public surface. See [Multi-chain Settlement](/guides/multichain).
 
 ![x402 crypto rail flow](/images/x402-crypto-rail-flow.svg)
 

@@ -7,6 +7,18 @@ description: "Public-facing record of notable Apiosk gateway changes."
 
 A summary of recent product changes that affect public integrators — consumers building against the gateway, publishers managing listings, and operators wiring agent wallets. Internal infrastructure work is intentionally omitted.
 
+## 2026-07 — Multi-chain settlement (Base + Solana)
+
+The USDC rail is no longer Base-only. Paid routes now settle over x402 on multiple networks — **Base and Solana are live**, Polygon and Arbitrum follow as facilitator support lands.
+
+- a paid route's `402` carries one `accepts[]` entry per configured network — the publisher's primary network first, Base always included as fallback — all at the same USDC price
+- the buyer picks a network, pays on it, and names it in the payment payload; the gateway settles against the matching entry
+- publishers attach up to **4 payout wallets per API — exactly one per chain** — from their verified wallets (EVM chains auto-detected from the connected wallet, Solana via Phantom; Solana ownership verified with an ed25519 Phantom signature)
+- earnings settle to the wallet of the chain the buyer paid on; the 98% / 2% split is unchanged on every network
+- if a network is unavailable, the gateway falls back to Base USDC — a `402` is always payable
+- `GET https://gateway.apiosk.com/.well-known/x402` lists per-resource networks and the enabled set in `meta.settlement.networks`
+- see [/guides/multichain](/guides/multichain)
+
 ## 2026-07 — Apiosk Connect (marketplace)
 
 Marketplaces can onboard their own merchants and bill each merchant's API as a **skill** over x402, with the payment split between merchant, marketplace, and Apiosk's 2% fee.

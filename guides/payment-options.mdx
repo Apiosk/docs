@@ -28,6 +28,8 @@ Best when you want direct control of the payer.
 - sign the payment challenge with your own payer
 - retry with `x-payment`
 
+The `402` may list several networks — Base and Solana are live — one `accepts` entry per network the API is configured for, all at the same USDC price. Pick the entry you can pay on and name that network in your payment payload; a Base entry is always included as fallback. See [Multi-chain Settlement](/guides/multichain).
+
 Use this when you already have your own payment orchestration or want the most explicit proof path.
 
 ## 3. SEPA Direct Debit rail

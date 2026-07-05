@@ -1,0 +1,124 @@
+---
+title: "Multi-chain Settlement"
+description: "The gateway settles USDC on more than one network — how the multi-accept 402 works, how buyers pick a chain, and how publishers configure per-chain payout wallets."
+---
+
+# Multi-chain Settlement
+
+The gateway settles paid calls in USDC over x402 on multiple networks. A paid
+endpoint's `402` response lists one payment requirement per network the API is
+configured for; the buyer picks a network, pays on it, and the publisher is paid
+out on that same network.
+
+## Supported networks
+
+| Network | `network` id | USDC asset | Status |
+| --- | --- | --- | --- |
+| Base | `base` | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | **Live** |
+| Solana | `solana` | `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v` | **Live** |
+| Polygon | `polygon` | `0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359` | Coming soon |
+| Arbitrum | `arbitrum` | `0xaf88d065e77c8cC2239327C5EDb3A432268e5831` | Coming soon |
+
+Polygon and Arbitrum are enabled as facilitator support lands. The currently
+enabled set is published live in `meta.settlement.networks` of the discovery
+document at `https://gateway.apiosk.com/.well-known/x402`, which also lists the
+per-resource `accepts` entries with their networks.
+
+## The multi-accept 402
+
+A paid route's `402` now carries **multiple `accepts[]` entries** — one per
+network the API is configured for:
+
+- the publisher's primary network comes first
+- **Base is always included** as a fallback
+- any additionally configured chains follow
+
+Every entry prices the same resource at the same USDC amount; only `network`,
+`asset`, `payTo`, and `extra` differ. Solana entries carry `extra.feePayer`
+(the facilitator's fee payer) instead of the EVM EIP-712 `extra.{name,version}`.
+
+```json
+{
+  "error": "Payment required",
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "base",
+      "maxAmountRequired": "60000",
+      "resource": "https://gateway.apiosk.com/weather/current",
+      "description": "Current weather conditions",
+      "mimeType": "application/json",
+      "payTo": "0x8f3C1a9bF2d47e05A6b21C9d8E4f70b3D5a6E210",
+      "maxTimeoutSeconds": 60,
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "extra": { "name": "USDC", "version": "2" }
+    },
+    {
+      "scheme": "exact",
+      "network": "solana",
+      "maxAmountRequired": "60000",
+      "resource": "https://gateway.apiosk.com/weather/current",
+      "description": "Current weather conditions",
+      "mimeType": "application/json",
+      "payTo": "7sPjV9dQzR4mK2xW8yBtF5cN1aHgU6eLoJpTq3ZvMnED",
+      "maxTimeoutSeconds": 60,
+      "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "extra": { "feePayer": "FaciL1tatorFeePayerPubkey11111111111111111111" }
+    }
+  ],
+  "x402Version": 1
+}
+```
+
+## How buyers choose a network
+
+1. Read the `accepts[]` array from the `402`.
+2. Pick the entry whose `network` you can pay on.
+3. Sign and pay per that entry (EVM entries via the EIP-712 domain in `extra`,
+   Solana entries via the facilitator fee payer in `extra.feePayer`).
+4. Put the network name (`base`, `solana`, `polygon`, `arbitrum`) in the payment
+   payload you send in `x-payment` — the gateway settles against the matching
+   `accepts` entry.
+
+The price is identical on every entry, so the choice is purely about which
+chain your payer holds USDC on.
+
+## Publisher payout wallets
+
+Publishers configure settlement networks by attaching payout wallets in the
+provider portal:
+
+- attach **up to 4 payout wallets per API — exactly one per chain** — chosen
+  from your verified wallets
+- the connected wallet's chain is auto-detected: Base, Polygon, and Arbitrum via
+  the wallet's active chain; Solana via Phantom
+- wallet ownership must be verified before a wallet can be attached: EVM wallets
+  sign the ownership message with an EIP-191 signature, Solana wallets sign the
+  same message with Phantom (ed25519)
+
+## Payout routing
+
+Earnings settle to the wallet of the chain the buyer paid on: pay on Solana,
+and the publisher's Solana wallet receives the payout; pay on Base, and the
+Base wallet does. The split is unchanged — **98% to the publisher, 2% platform
+fee** — on every network.
+
+## Base fallback guarantee
+
+If a network is unavailable — facilitator support is missing or the listing's
+configuration for that chain is incomplete — the gateway falls back to Base
+USDC. Because every `402` always includes a Base entry, **a 402 is always
+payable**.
+
+<Note>
+The SEPA Direct Debit rail is unaffected by network selection — it settles in
+euros on the bank side regardless of which chains a listing is configured for.
+See [Payment Options](/guides/payment-options).
+</Note>
+
+## Related links
+
+- Payment model: [/overview/payment-model](/overview/payment-model)
+- Payment options: [/guides/payment-options](/guides/payment-options)
+- Consumer guide: [/guides/consumers](/guides/consumers)
+- Bazaar discovery: [/guides/bazaar-discovery](/guides/bazaar-discovery)

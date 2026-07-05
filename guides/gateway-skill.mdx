@@ -13,7 +13,7 @@ receipt headers.
 
 The agent never holds funds or signs payments. A buyer connects a budget once
 and mints a connect token; the gateway settles each call on the buyer's behalf
-over USDC (x402 on Base) or SEPA.
+over USDC (x402) or SEPA.
 
 ## Install
 
@@ -108,7 +108,7 @@ prediction of the price.
 | --- | --- |
 | `X-Apiosk-Payment-Rail` | `x402`, `sepa`, or `credits` |
 | `X-Apiosk-Price-Listed` | Authorized price (USDC, gross) — log this to trace spend |
-| `X-Apiosk-Tx-Hash` | Base transaction hash (USDC only) |
+| `X-Apiosk-Tx-Hash` | On-chain transaction hash (USDC only) |
 | `X-Apiosk-Idempotent-Replay` | `true` means a cached replay, no new charge |
 
 ## Golden rules

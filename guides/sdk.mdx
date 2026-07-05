@@ -66,6 +66,13 @@ const response = await client.execute("agent-json-diff", {
 The private key stays in your process and signs payments locally — it is never
 sent to the gateway.
 
+<Note>
+Paid routes now offer multiple settlement networks in their `402` (see
+[Multi-chain Settlement](/guides/multichain)), but every `402` always includes
+a Base entry — so a Base private key keeps working unchanged: the client
+settles against the Base entry.
+</Note>
+
 ## Alternative auth modes
 
 For dashboard-managed access, pass a connect token or an explicit authorization

@@ -82,6 +82,7 @@
               "guides/execute",
               "guides/execute-capabilities",
               "guides/payment-options",
+              "guides/multichain",
               "guides/payment-mode-comparison",
               "guides/errors-and-retries",
               "guides/examples"

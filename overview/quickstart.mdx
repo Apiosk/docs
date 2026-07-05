@@ -49,6 +49,8 @@ At that point you can either:
 - attach a raw `x-payment` proof from your own payer flow
 - use a dashboard-managed wallet or connect string flow
 
+The `402` may offer more than one settlement network (Base and Solana are live) — pick any listed entry; the price is the same on all of them. See [Multi-chain Settlement](/guides/multichain).
+
 For local MCP installs, prefer `apiosk_get_started` over manually managing the first paid call. It will set up the local wallet or saved connect-token state and tell you whether the next step is `ready`, `needs_funding`, or more specific input.
 
 ## 5. Read the normalized result
