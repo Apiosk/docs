@@ -93,6 +93,7 @@
             "pages": [
               "guides/publishers",
               "guides/provider-sdk",
+              "guides/publisher-mcp",
               "guides/payment-check",
               "guides/publisher-lifecycle",
               "guides/listing-metadata"

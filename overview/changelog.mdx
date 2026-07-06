@@ -7,6 +7,15 @@ description: "Public-facing record of notable Apiosk gateway changes."
 
 A summary of recent product changes that affect public integrators — consumers building against the gateway, publishers managing listings, and operators wiring agent wallets. Internal infrastructure work is intentionally omitted.
 
+## 2026-07 — Publisher MCP: publish paid routes from a coding agent
+
+The hosted Apiosk MCP server (`https://mcp.apiosk.com/mcp`) now publishes as well as consumes. A coding agent — Claude Code, Cursor, Codex — authenticates with a provider `sk_live_` key (`Authorization: Bearer sk_live_…`) and can turn any HTTPS endpoint into a paid x402 route in one tool call.
+
+- new tools: `publish_x402_route`, `publish_project`, `list_x402_routes`, `update_x402_route`, `unpublish_x402_route`, `test_x402_route`, `generate_openapi_spec`
+- routes follow the normal publisher lifecycle (operator review → live → Bazaar-indexed); 98% of every call settles to your wallet
+- machine-readable route index at `https://mcp.apiosk.com/.well-known/apiosk-routes.json` (alias `/discovery`), per-route OpenAPI 3.1 at `https://mcp.apiosk.com/openapi/<route_id>.json`
+- see [/guides/publisher-mcp](/guides/publisher-mcp)
+
 ## 2026-07 — Multi-chain settlement (Base + Solana)
 
 The USDC rail is no longer Base-only. Paid routes now settle over x402 on multiple networks — **Base and Solana are live**, Polygon and Arbitrum follow as facilitator support lands.

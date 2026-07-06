@@ -1,0 +1,142 @@
+---
+title: "Publisher MCP"
+description: "Publish paid x402 routes straight from a coding agent — Claude Code, Cursor, Codex — through the hosted Apiosk MCP server."
+---
+
+# Publisher MCP
+
+The hosted Apiosk MCP server (`https://mcp.apiosk.com/mcp`) doubles as a
+**publisher** for coding agents. An agent that just built an API can turn it
+into a monetized x402 endpoint in one tool call:
+
+> "Publish this API as a paid x402 endpoint on Apiosk for $0.05 per request."
+
+The route gets a paid URL on the gateway that returns `402 Payment Required`
+with an x402 offer until the caller pays in USDC, then forwards to your
+upstream service. You keep 98% of every call; Apiosk keeps a 2% platform fee.
+
+## Connect
+
+Publishing authenticates with a **provider API key** (`sk_live_…`) — the same
+key described in [Provider SDK keys](/guides/provider-sdk). Mint one in the
+provider portal under **Settings → API keys**, then add the server to your MCP
+client:
+
+```json
+{
+  "mcpServers": {
+    "apiosk": {
+      "url": "https://mcp.apiosk.com/mcp",
+      "headers": {
+        "Authorization": "Bearer sk_live_YOUR_PROVIDER_KEY"
+      }
+    }
+  }
+}
+```
+
+Claude Code one-liner:
+
+```bash
+claude mcp add --transport http apiosk https://mcp.apiosk.com/mcp \
+  --header "Authorization: Bearer sk_live_YOUR_PROVIDER_KEY"
+```
+
+<Note>
+Without a key the discovery tools still work; the publisher tools return a
+`401` telling you how to get one. For local stdio installs of `@apiosk/mcp`,
+set `APIOSK_PROVIDER_TOKEN=sk_live_…` instead of the header.
+</Note>
+
+## The tools
+
+| Tool | What it does |
+| --- | --- |
+| `publish_x402_route` | Turn an HTTPS endpoint into a paid route: `name`, `upstream_url`, `price` (USDC per call), `settlement_address`, optional `method`/`path`/schemas/tags. Returns the `paid_url`. |
+| `publish_project` | Publish several routes of one project (one `base_url`, many paths) in a single call. |
+| `list_x402_routes` | All your routes with paid URLs, prices, and live status. |
+| `update_x402_route` | Change price, description, upstream URL, schemas, settlement address, or status. |
+| `unpublish_x402_route` | Disable a route (reversible with `update_x402_route {status: "active"}`). |
+| `test_x402_route` | Fire an unpaid request at the paid URL and verify it returns a correct `402` with an x402 `accepts[]` offer. |
+| `generate_openapi_spec` | Host an OpenAPI 3.1 spec for the route at `https://mcp.apiosk.com/openapi/<route_id>.json`. |
+
+## Publish, then test
+
+```json
+// publish_x402_route input
+{
+  "name": "Weather API",
+  "description": "Returns weather data for a city.",
+  "upstream_url": "https://example.com/api/weather",
+  "method": "GET",
+  "path": "/weather",
+  "price": "0.01",
+  "settlement_address": "0xYourWallet",
+  "tags": ["weather", "data"]
+}
+```
+
+```json
+// response
+{
+  "route_id": "…",
+  "paid_url": "https://gateway.apiosk.com/weather-api/weather",
+  "price": "0.01",
+  "currency": "USDC",
+  "network": "base",
+  "status": "pending_review",
+  "note": "Route created and queued for Apiosk review…"
+}
+```
+
+Lifecycle is honest by design: **new routes enter operator review**
+(`status: "pending_review"`) before they serve traffic — the same
+[publisher lifecycle](/guides/publisher-lifecycle) every listing goes through.
+On approval the route:
+
+- serves x402 payments at its paid URL,
+- appears in the gateway discovery document
+  `https://gateway.apiosk.com/.well-known/x402`, and
+- is auto-indexed in [Coinbase's CDP x402 Bazaar](/guides/bazaar-discovery).
+
+Run `test_x402_route` once it's live to confirm the `402` behavior end to end:
+
+```json
+{
+  "success": true,
+  "http_status": 402,
+  "payment_required": true,
+  "x402_enabled": true,
+  "payment_offer": {
+    "scheme": "exact",
+    "network": "base",
+    "max_amount_required": "10000",
+    "pay_to": "0xYourWallet"
+  }
+}
+```
+
+## Settlement and networks
+
+Pricing is per call in USDC. Base is the default settlement network; Polygon,
+Arbitrum, and Solana can be requested per route and follow the
+[multi-chain settlement](/guides/multichain) rules (Base always remains the
+fallback). Your `settlement_address` receives 98% of every paid call.
+
+## Machine-readable discovery
+
+Beyond the gateway's canonical `/.well-known/x402`, the MCP server exposes:
+
+- `https://mcp.apiosk.com/.well-known/apiosk-routes.json` (alias
+  `https://mcp.apiosk.com/discovery`) — a compact index of every paid route
+  with name, URL, method, price, currency, and network.
+- `https://mcp.apiosk.com/openapi/<route_id>.json` — a per-route OpenAPI 3.1
+  document with `x-price` extensions, generated live from the listing.
+
+## Boundaries
+
+The Publisher MCP manages **standalone gateway listings** only — the same ones
+the provider portal manages. Marketplace [Connect](/guides/connect-marketplace)
+skills are a separate surface and cannot be created or modified through MCP.
+Euro off-ramp (SEPA payouts via KYB) remains a human flow in the provider
+portal; see [Boundaries](/guides/boundaries).
