@@ -63,13 +63,13 @@ const response = await client.execute("agent-json-diff", {
 });
 ```
 
-The private key stays in your process and signs payments locally — it is never
+The private key stays in your process and signs payments locally, it is never
 sent to the gateway.
 
 <Note>
 Paid routes now offer multiple settlement networks in their `402` (see
 [Multi-chain Settlement](/guides/multichain)), but every `402` always includes
-a Base entry — so a Base private key keeps working unchanged: the client
+a Base entry, so a Base private key keeps working unchanged: the client
 settles against the Base entry.
 </Note>
 
@@ -110,12 +110,12 @@ it directly with the `xPayment` option.
 
 | Method | Maps to |
 | --- | --- |
-| `listApis(params)` | `GET /v1/apis` — search and paginate listings. |
-| `getApi(slug)` | `GET /v1/apis/:slug` — inspect one listing. |
-| `getMetadata(slug)` | `GET /:slug/metadata` — agent-native metadata. |
-| `execute(slug, input, options)` | `POST /:slug/execute` — default operation. |
+| `listApis(params)` | `GET /v1/apis`: search and paginate listings. |
+| `getApi(slug)` | `GET /v1/apis/:slug`: inspect one listing. |
+| `getMetadata(slug)` | `GET /:slug/metadata`: agent-native metadata. |
+| `execute(slug, input, options)` | `POST /:slug/execute`: default operation. |
 | `executeOperation(slug, operation, input, options)` | `POST /:slug/execute` with an explicit operation. |
-| `passthrough(slug, path, options)` | `/:slug/*path` — provider-specific shape. |
+| `passthrough(slug, path, options)` | `/:slug/*path`: provider-specific shape. |
 
 ```js
 // Explicit operation
@@ -162,11 +162,11 @@ try {
 
 The gateway client is intentionally separate from the merchant checkout UI:
 
-- `@apiosk/checkout-core` — shared checkout schema and intent helpers
-- `@apiosk/checkout-web` — plain HTML and custom-element checkout
-- `@apiosk/checkout-react` — React and Next.js apps
-- `@apiosk/checkout-vue` — Vue apps
-- `apiosk` (Python) — server-side intent creation, webhook verification, and
+- `@apiosk/checkout-core`: shared checkout schema and intent helpers
+- `@apiosk/checkout-web`: plain HTML and custom-element checkout
+- `@apiosk/checkout-react`: React and Next.js apps
+- `@apiosk/checkout-vue`: Vue apps
+- `apiosk` (Python), server-side intent creation, webhook verification, and
   status polling
 
 ## Related links

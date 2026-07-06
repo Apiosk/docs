@@ -1,6 +1,6 @@
 ---
 title: "Multi-chain Settlement"
-description: "The gateway settles USDC on more than one network — how the multi-accept 402 works, how buyers pick a chain, and how publishers configure per-chain payout wallets."
+description: "The gateway settles USDC on more than one network, how the multi-accept 402 works, how buyers pick a chain, and how publishers configure per-chain payout wallets."
 ---
 
 # Multi-chain Settlement
@@ -26,7 +26,7 @@ per-resource `accepts` entries with their networks.
 
 ## The multi-accept 402
 
-A paid route's `402` now carries **multiple `accepts[]` entries** — one per
+A paid route's `402` now carries **multiple `accepts[]` entries**, one per
 network the API is configured for:
 
 - the publisher's primary network comes first
@@ -77,7 +77,7 @@ Every entry prices the same resource at the same USDC amount; only `network`,
 3. Sign and pay per that entry (EVM entries via the EIP-712 domain in `extra`,
    Solana entries via the facilitator fee payer in `extra.feePayer`).
 4. Put the network name (`base`, `solana`, `polygon`, `arbitrum`) in the payment
-   payload you send in `x-payment` — the gateway settles against the matching
+   payload you send in `x-payment`: the gateway settles against the matching
    `accepts` entry.
 
 The price is identical on every entry, so the choice is purely about which
@@ -88,7 +88,7 @@ chain your payer holds USDC on.
 Publishers configure settlement networks by attaching payout wallets in the
 provider portal:
 
-- attach **up to 4 payout wallets per API — exactly one per chain** — chosen
+- attach **up to 4 payout wallets per API: exactly one per chain**, chosen
   from your verified wallets
 - the connected wallet's chain is auto-detected: Base, Polygon, and Arbitrum via
   the wallet's active chain; Solana via Phantom
@@ -100,18 +100,18 @@ provider portal:
 
 Earnings settle to the wallet of the chain the buyer paid on: pay on Solana,
 and the publisher's Solana wallet receives the payout; pay on Base, and the
-Base wallet does. The split is unchanged — **98% to the publisher, 2% platform
-fee** — on every network.
+Base wallet does. The split is unchanged, **98% to the publisher, 2% platform
+fee**, on every network.
 
 ## Base fallback guarantee
 
-If a network is unavailable — facilitator support is missing or the listing's
-configuration for that chain is incomplete — the gateway falls back to Base
+If a network is unavailable, facilitator support is missing or the listing's
+configuration for that chain is incomplete, the gateway falls back to Base
 USDC. Because every `402` always includes a Base entry, **a 402 is always
 payable**.
 
 <Note>
-The SEPA Direct Debit rail is unaffected by network selection — it settles in
+The SEPA Direct Debit rail is unaffected by network selection, it settles in
 euros on the bank side regardless of which chains a listing is configured for.
 See [Payment Options](/guides/payment-options).
 </Note>

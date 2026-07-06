@@ -5,30 +5,30 @@ description: "Public-facing record of notable Apiosk gateway changes."
 
 # Changelog
 
-A summary of recent product changes that affect public integrators — consumers building against the gateway, publishers managing listings, and operators wiring agent wallets. Internal infrastructure work is intentionally omitted.
+A summary of recent product changes that affect public integrators, consumers building against the gateway, publishers managing listings, and operators wiring agent wallets. Internal infrastructure work is intentionally omitted.
 
-## 2026-07 — Publisher MCP: publish paid routes from a coding agent
+## 2026-07, Publisher MCP: publish paid routes from a coding agent
 
-The hosted Apiosk MCP server (`https://mcp.apiosk.com/mcp`) now publishes as well as consumes. A coding agent — Claude Code, Cursor, Codex — authenticates with a provider `sk_live_` key (`Authorization: Bearer sk_live_…`) and can turn any HTTPS endpoint into a paid x402 route in one tool call.
+The hosted Apiosk MCP server (`https://mcp.apiosk.com/mcp`) now publishes as well as consumes. A coding agent, Claude Code, Cursor, Codex, authenticates with a provider `sk_live_` key (`Authorization: Bearer sk_live_…`) and can turn any HTTPS endpoint into a paid x402 route in one tool call.
 
 - new tools: `publish_x402_route`, `publish_project`, `list_x402_routes`, `update_x402_route`, `unpublish_x402_route`, `test_x402_route`, `generate_openapi_spec`
 - routes follow the normal publisher lifecycle (operator review → live → Bazaar-indexed); 98% of every call settles to your wallet
 - machine-readable route index at `https://mcp.apiosk.com/.well-known/apiosk-routes.json` (alias `/discovery`), per-route OpenAPI 3.1 at `https://mcp.apiosk.com/openapi/<route_id>.json`
 - see [/guides/publisher-mcp](/guides/publisher-mcp)
 
-## 2026-07 — Multi-chain settlement (Base + Solana)
+## 2026-07, Multi-chain settlement (Base + Solana)
 
-The USDC rail is no longer Base-only. Paid routes now settle over x402 on multiple networks — **Base and Solana are live**, Polygon and Arbitrum follow as facilitator support lands.
+The USDC rail is no longer Base-only. Paid routes now settle over x402 on multiple networks, **Base and Solana are live**, Polygon and Arbitrum follow as facilitator support lands.
 
-- a paid route's `402` carries one `accepts[]` entry per configured network — the publisher's primary network first, Base always included as fallback — all at the same USDC price
+- a paid route's `402` carries one `accepts[]` entry per configured network, the publisher's primary network first, Base always included as fallback, all at the same USDC price
 - the buyer picks a network, pays on it, and names it in the payment payload; the gateway settles against the matching entry
-- publishers attach up to **4 payout wallets per API — exactly one per chain** — from their verified wallets (EVM chains auto-detected from the connected wallet, Solana via Phantom; Solana ownership verified with an ed25519 Phantom signature)
+- publishers attach up to **4 payout wallets per API, exactly one per chain**, from their verified wallets (EVM chains auto-detected from the connected wallet, Solana via Phantom; Solana ownership verified with an ed25519 Phantom signature)
 - earnings settle to the wallet of the chain the buyer paid on; the 98% / 2% split is unchanged on every network
-- if a network is unavailable, the gateway falls back to Base USDC — a `402` is always payable
+- if a network is unavailable, the gateway falls back to Base USDC, a `402` is always payable
 - `GET https://gateway.apiosk.com/.well-known/x402` lists per-resource networks and the enabled set in `meta.settlement.networks`
 - see [/guides/multichain](/guides/multichain)
 
-## 2026-07 — Apiosk Connect (marketplace)
+## 2026-07, Apiosk Connect (marketplace)
 
 Marketplaces can onboard their own merchants and bill each merchant's API as a **skill** over x402, with the payment split between merchant, marketplace, and Apiosk's 2% fee.
 
@@ -37,70 +37,70 @@ Marketplaces can onboard their own merchants and bill each merchant's API as a *
 - server-to-server skill registration with a secret (`apk_live_`) key
 - see [/guides/connect-marketplace](/guides/connect-marketplace)
 
-## 2026-07 — Bazaar discovery
+## 2026-07, Bazaar discovery
 
 Standalone gateway routes are now indexed into Coinbase's CDP x402 Bazaar after their first settled call, so agents can discover Apiosk endpoints there. Marketplace Connect skills stay private and are never indexed. See [/guides/bazaar-discovery](/guides/bazaar-discovery).
 
-## 2026-06 — Provider SDK keys
+## 2026-06, Provider SDK keys
 
-Publishers can mint a long-lived `sk_live_` key to publish and manage listings headlessly — and to make paid calls — without a browser session or a per-request wallet signature. See [/guides/provider-sdk](/guides/provider-sdk).
+Publishers can mint a long-lived `sk_live_` key to publish and manage listings headlessly, and to make paid calls, without a browser session or a per-request wallet signature. See [/guides/provider-sdk](/guides/provider-sdk).
 
-## 2026-05 — Platform fee reduced to 2%
+## 2026-05, Platform fee reduced to 2%
 
 The on-chain platform fee on the USDC rail dropped from **10% to 2%**. Publishers now receive **98%** of every settled call.
 
 - enforced by the on-chain `ApioskSettlement` contract on Base at [`0x512c770Ef7B651298cBFA2Ab865A81C12F0c703d`](https://basescan.org/address/0x512c770Ef7B651298cBFA2Ab865A81C12F0c703d)
 - live default in the gateway runtime via `DEFAULT_COMMISSION_RATE` (0.02)
 - the change applies retroactively to all USDC settlements after the contract update
-- SEPA rail is unaffected — it remains a monthly subscription with no per-transaction Apiosk fee
+- SEPA rail is unaffected: it remains a monthly subscription with no per-transaction Apiosk fee
 
-## 2026-05 — Force-rail header
+## 2026-05, Force-rail header
 
 The gateway accepts an `X-Payment-Rail` header on paid requests to pin the settlement rail explicitly:
 
-- `X-Payment-Rail: x402` — settle on-chain in USDC on Base
-- `X-Payment-Rail: sepa` — settle via SEPA Direct Debit through Mollie
-- `X-Payment-Rail: credits` — debit pre-paid Apiosk credits
+- `X-Payment-Rail: x402`: settle on-chain in USDC on Base
+- `X-Payment-Rail: sepa`: settle via SEPA Direct Debit through Mollie
+- `X-Payment-Rail: credits`: debit pre-paid Apiosk credits
 
 Without the header the gateway selects the cheapest viable rail for the buyer and falls back automatically if the preferred rail is unavailable (for example, an underfunded managed wallet falls back to SEPA or credits when both are configured).
 
-## 2026-05 — Dedicated preflight route
+## 2026-05, Dedicated preflight route
 
-A dry-run preflight endpoint is available so agents can check whether a paid call will succeed before they trigger it. The preflight returns the resolved price, the selected rail, and any fundability or mandate gaps — without forwarding the call upstream or charging the buyer.
+A dry-run preflight endpoint is available so agents can check whether a paid call will succeed before they trigger it. The preflight returns the resolved price, the selected rail, and any fundability or mandate gaps, without forwarding the call upstream or charging the buyer.
 
 Recommended usage:
 
 - preflight calls above **$0.10** before executing
 - preflight batches of more than 5 calls to the same listing in a short window
 
-## 2026-05 — SEPA Direct Debit rail
+## 2026-05, SEPA Direct Debit rail
 
 The gateway settles paid calls via SEPA Direct Debit (in addition to USDC over x402). Per-call debits accumulate in a settlement ledger on the gateway side and are reconciled by a batch worker through Mollie on the bank side.
 
 What this means for integrators:
 
 - EU buyers can sign a SEPA mandate once via the buyer portal and let the gateway handle per-call debits
-- Apiosk takes no per-transaction percentage on SEPA — pricing is a monthly subscription
+- Apiosk takes no per-transaction percentage on SEPA, pricing is a monthly subscription
 - a publisher does not need to choose a rail; the same listing accepts USDC and SEPA buyers transparently
 
-## 2026-05 — `/v1/me` and `/v1/me/sepa`
+## 2026-05, `/v1/me` and `/v1/me/sepa`
 
 New consumer-facing introspection endpoints:
 
-- `GET /v1/me` — returns the resolved identity, plan, balance, and rail configuration for the caller
-- `GET /v1/me/sepa` — returns SEPA mandate state and outstanding ledger balance
+- `GET /v1/me`: returns the resolved identity, plan, balance, and rail configuration for the caller
+- `GET /v1/me/sepa`: returns SEPA mandate state and outstanding ledger balance
 
 These let an integrator surface "is this buyer ready to transact?" without trial-and-error against paid routes.
 
-## 2026-04 — Public `/status` endpoint
+## 2026-04, Public `/status` endpoint
 
 A public health endpoint that reports gateway availability, database ping latency, 7-day traffic, and the count of active listings. Suitable for status pages and uptime monitors. Authentication is not required.
 
-## 2026-04 — HMAC outbound signing (opt-in)
+## 2026-04, HMAC outbound signing (opt-in)
 
 Publishers can opt in to HMAC signing on outbound requests from the gateway to their origin. When enabled, the gateway adds a signature header derived from a shared secret so the publisher's origin can verify that the request was relayed by the gateway and not forged.
 
-## 2026-04 — Provider verification gate and payout proof constraints
+## 2026-04, Provider verification gate and payout proof constraints
 
 Publishers must complete provider verification before payouts unlock. Payout requests are gated on proof artefacts (e.g. confirmed wallet ownership, IBAN proof of life on the SEPA side) to keep payouts auditable.
 

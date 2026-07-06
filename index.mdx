@@ -9,7 +9,7 @@ The Apiosk gateway is a pay-per-call API surface for agents and applications. Co
 
 ## At a glance
 
-The gateway acts as a public x402 payment boundary. A client requests execution, receives pricing in a `402 Payment Required` response when the route is paid, settles in USDC on a supported network — Base and Solana are live, Polygon and Arbitrum coming soon — retries with a proof, and then receives the upstream result through the same public surface. See [Multi-chain Settlement](/guides/multichain).
+The gateway acts as a public x402 payment boundary. A client requests execution, receives pricing in a `402 Payment Required` response when the route is paid, settles in USDC on a supported network, Base and Solana are live, Polygon and Arbitrum coming soon, retries with a proof, and then receives the upstream result through the same public surface. See [Multi-chain Settlement](/guides/multichain).
 
 ![x402 crypto rail flow](/images/x402-crypto-rail-flow.svg)
 
@@ -28,12 +28,12 @@ wire it up.
 | Path | Best for | Guide |
 | --- | --- | --- |
 | **Gateway API** (direct HTTP) | Maximum control over headers, retries, and the raw `402` loop | [/guides/consumers](/guides/consumers) · [/guides/execute](/guides/execute) |
-| **Remote MCP** | ChatGPT and agent clients — add the URL, OAuth once, run paid tools | [/guides/mcp-clients](/guides/mcp-clients) |
+| **Remote MCP** | ChatGPT and agent clients, add the URL, OAuth once, run paid tools | [/guides/mcp-clients](/guides/mcp-clients) |
 | **JavaScript SDK** (`@apiosk/sdk`) | Node backends that want typed `402` errors and auto-pay | [/guides/sdk](/guides/sdk) |
 | **Gateway Skill** | Coding agents (Claude Code, Codex) running paid calls from a shell | [/guides/gateway-skill](/guides/gateway-skill) |
 
-If you sell access instead of buying it — gating a skill, download, or service
-behind payment — see [Payment Checks](/guides/payment-check).
+If you sell access instead of buying it, gating a skill, download, or service
+behind payment, see [Payment Checks](/guides/payment-check).
 
 ## GPT-native MCP quickstart
 

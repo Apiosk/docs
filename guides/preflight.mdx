@@ -1,6 +1,6 @@
 ---
 title: "Preflight (Dry Run)"
-description: "Ask the gateway what a paid call would do — which rail, which wallet, whether it would succeed — without spending anything."
+description: "Ask the gateway what a paid call would do, which rail, which wallet, whether it would succeed, without spending anything."
 ---
 
 # Preflight (Dry Run)
@@ -74,7 +74,7 @@ credits when preflight reports x402/sepa. Pin a rail with `X-Apiosk-Rail`
 
 - Before any call above ~$0.10, or a batch of more than five calls to one slug.
 - After a budget or mandate change, to confirm the buyer is still ready.
-- Instead of a real call when you only need to learn the price — combine with
+- Instead of a real call when you only need to learn the price, combine with
   `GET /v1/apis/{slug}`.
 
 ## Related links

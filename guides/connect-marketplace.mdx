@@ -32,7 +32,7 @@ A marketplace mints two kinds of key from the portal:
 | Publishable key | `apk_pub_` | safe to embed in a web page | Powers the "Connect with Apiosk" embed |
 
 <Warning>
-The secret key is shown once at mint and stored only as a hash — it is never
+The secret key is shown once at mint and stored only as a hash, it is never
 re-displayed. Keep `apk_live_` keys server-side; only `apk_pub_` keys are safe
 in client HTML.
 </Warning>
@@ -52,7 +52,7 @@ curl -X POST https://gateway.apiosk.com/v1/marketplaces/{id}/publishable-keys \
   -H "Authorization: Bearer <portal-session>"
 ```
 
-## 2. Onboard a merchant — "Connect with Apiosk"
+## 2. Onboard a merchant, "Connect with Apiosk"
 
 Drop the embed on your own site. The publishable key identifies the marketplace;
 the embed opens a hosted, signed onboarding session in the Apiosk portal.
@@ -67,15 +67,15 @@ The embed calls `POST /v1/connect/embed/start`, which validates the publishable
 key and returns a short-lived **merchant session**. The portal wizard then walks
 the merchant through three steps:
 
-1. **Profile** — `POST /v1/merchants/profile` saves display name and contact email.
-2. **Wallet** — `POST /v1/siwe/nonce` then `POST /v1/siwe/verify` prove control of
+1. **Profile**, `POST /v1/merchants/profile` saves display name and contact email.
+2. **Wallet**, `POST /v1/siwe/nonce` then `POST /v1/siwe/verify` prove control of
    an EVM payout address via a Sign-In-With-Ethereum signature.
-3. **Activate** — `POST /v1/merchants/activate` requires a verified wallet and
+3. **Activate**, `POST /v1/merchants/activate` requires a verified wallet and
    flips the merchant to `active`.
 
 <Note>
 A merchant can only earn once it is **active** and has a verified payout wallet.
-Skill creation and every charge re-check this — an unverified merchant's skills
+Skill creation and every charge re-check this, an unverified merchant's skills
 cannot be charged.
 </Note>
 
@@ -120,7 +120,7 @@ curl https://gateway.apiosk.com/v1/skills/{id}/charge \
 ```
 
 The gross amount settles once to the platform wallet, then two payout legs are
-queued — the **merchant** (its net share) and the **marketplace** (its fee) —
+queued, the **merchant** (its net share) and the **marketplace** (its fee) -
 while Apiosk keeps its 2%. The three amounts always sum to the gross:
 
 | Party | Share |
@@ -130,7 +130,7 @@ while Apiosk keeps its 2%. The three amounts always sum to the gross:
 | Apiosk | 2% platform fee |
 
 <Note>
-Connect settles once to the platform wallet and splits at payout time — there is
+Connect settles once to the platform wallet and splits at payout time, there is
 no on-chain splitter contract to integrate.
 </Note>
 

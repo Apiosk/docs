@@ -1,19 +1,19 @@
 ---
 title: "Provider SDK Keys"
-description: "Use a long-lived sk_live_ key to publish and manage listings — and make paid calls — headlessly, without a browser session or per-request wallet signature."
+description: "Use a long-lived sk_live_ key to publish and manage listings, and make paid calls, headlessly, without a browser session or per-request wallet signature."
 ---
 
 # Provider SDK Keys
 
 Publisher management endpoints normally authenticate with a wallet-signed header
-(see [/guides/publishers](/guides/publishers)). For headless automation — CI,
-servers, agents — that is awkward. A **provider SDK key** is a long-lived bearer
+(see [/guides/publishers](/guides/publishers)). For headless automation, CI,
+servers, agents, that is awkward. A **provider SDK key** is a long-lived bearer
 credential that authenticates the same operations without signing each request.
 
 ## Minting a key
 
 Create a key in the portal under **Settings → SDK & API keys**. The full secret
-is shown **once** at creation and stored only as a hash plus a short prefix — copy
+is shown **once** at creation and stored only as a hash plus a short prefix, copy
 it then, and treat it like a password.
 
 A provider SDK key looks like `sk_live_` followed by a hex secret.
@@ -34,8 +34,8 @@ curl -X POST https://gateway.apiosk.com/v1/apis/register \
   -d '{ "slug": "my-api", "origin_url": "https://api.example.com" }'
 ```
 
-The same key authenticates the full publisher surface — `register`,
-`GET /v1/apis/mine`, updates, delete, and endpoint docs — with no per-request
+The same key authenticates the full publisher surface, `register`,
+`GET /v1/apis/mine`, updates, delete, and endpoint docs, with no per-request
 signature.
 
 A provider SDK key can also act as a **payer credential**: presented on a paid

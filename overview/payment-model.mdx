@@ -14,12 +14,12 @@ The gateway uses a simple public boundary:
 
 ## Public payment facts
 
-- networks: Base and Solana (live), Polygon and Arbitrum (coming soon) — see [Multi-chain Settlement](/guides/multichain)
+- networks: Base and Solana (live), Polygon and Arbitrum (coming soon), see [Multi-chain Settlement](/guides/multichain)
 - asset: USDC (on-chain rail) or EUR via SEPA Direct Debit (bank rail)
-- challenge transport: `HTTP 402 Payment Required` — the challenge lists one `accepts` entry per configured network, with Base always included as a fallback
+- challenge transport: `HTTP 402 Payment Required`: the challenge lists one `accepts` entry per configured network, with Base always included as a fallback
 - proof transport: `x-payment`
 - platform fee on USDC rail: **2%** (publishers receive 98% of each settled call)
-- platform fee on SEPA rail: none — Apiosk charges a monthly subscription instead of a per-transaction percentage
+- platform fee on SEPA rail: none: Apiosk charges a monthly subscription instead of a per-transaction percentage
 - settlement contract on Base: [`0x512c770Ef7B651298cBFA2Ab865A81C12F0c703d`](https://basescan.org/address/0x512c770Ef7B651298cBFA2Ab865A81C12F0c703d)
 
 ## Payment modes you can use
@@ -30,7 +30,7 @@ Use the dashboard to create or import an agent wallet and generate a connect str
 
 ### Raw x402 mode
 
-Use your own payer and sign the challenge yourself. This is the cleanest option when you want direct control over the payment proof flow. The `402` challenge may offer several networks — pick the entry you can pay on and name that network in your payment payload; see [Multi-chain Settlement](/guides/multichain).
+Use your own payer and sign the challenge yourself. This is the cleanest option when you want direct control over the payment proof flow. The `402` challenge may offer several networks, pick the entry you can pay on and name that network in your payment payload; see [Multi-chain Settlement](/guides/multichain).
 
 ### SEPA Direct Debit rail
 

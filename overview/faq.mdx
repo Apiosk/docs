@@ -43,19 +43,19 @@ Four paths share the same payment flow: the raw [Gateway API](/guides/consumers)
 
 ## How do I charge for my own skill or service?
 
-Put a payment check in front of it. The simplest way is to publish it as a listing so the gateway returns `402 Payment Required` for unpaid requests and only forwards paid ones to your origin — no payment code on your side. See [Payment Checks](/guides/payment-check).
+Put a payment check in front of it. The simplest way is to publish it as a listing so the gateway returns `402 Payment Required` for unpaid requests and only forwards paid ones to your origin, no payment code on your side. See [Payment Checks](/guides/payment-check).
 
 ## What does Apiosk charge per call?
 
-On the USDC rail, Apiosk takes a flat **2%** platform fee at the moment of settlement — publishers receive 98% of each call, on whichever network the buyer paid. On Base the split is enforced by the on-chain `ApioskSettlement` contract, so it is verifiable from any block explorer. The fee was reduced from 10% to 2% so that publishers keep substantially more of each call.
+On the USDC rail, Apiosk takes a flat **2%** platform fee at the moment of settlement, publishers receive 98% of each call, on whichever network the buyer paid. On Base the split is enforced by the on-chain `ApioskSettlement` contract, so it is verifiable from any block explorer. The fee was reduced from 10% to 2% so that publishers keep substantially more of each call.
 
 ## Which networks can buyers pay on?
 
-Base and Solana are live; Polygon and Arbitrum are coming soon. A paid route's `402` lists one `accepts` entry per network the API is configured for, all at the same USDC price, and always includes a Base entry as fallback — so a `402` is always payable. See [Multi-chain Settlement](/guides/multichain).
+Base and Solana are live; Polygon and Arbitrum are coming soon. A paid route's `402` lists one `accepts` entry per network the API is configured for, all at the same USDC price, and always includes a Base entry as fallback, so a `402` is always payable. See [Multi-chain Settlement](/guides/multichain).
 
 ## What does Apiosk charge on SEPA?
 
-Nothing per transaction. SEPA Direct Debit is priced as a monthly subscription tier — only Mollie's standard SEPA fee applies on the bank side.
+Nothing per transaction. SEPA Direct Debit is priced as a monthly subscription tier, only Mollie's standard SEPA fee applies on the bank side.
 
 ## Can I force a specific payment rail?
 

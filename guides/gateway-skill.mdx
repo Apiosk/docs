@@ -5,8 +5,8 @@ description: "Install the Apiosk gateway skill so coding agents like Claude Code
 
 # Gateway Skill
 
-The Apiosk gateway skill is an installable skill for coding agents — Claude Code,
-Codex, and other shell-capable agents — that need to run paid gateway requests
+The Apiosk gateway skill is an installable skill for coding agents, Claude Code,
+Codex, and other shell-capable agents, that need to run paid gateway requests
 without wiring up an MCP server. The skill teaches the agent the gateway's HTTP
 contract: discover an API, preflight for free, make a paid call, and read the
 receipt headers.
@@ -31,7 +31,7 @@ A starter kit with a runnable example lives at
    and/or a SEPA mandate.
 2. Provide the token to the skill through the `APIOSK_CONNECT_TOKEN` environment
    variable.
-3. The endpoints are fixed — no other config is needed:
+3. The endpoints are fixed, no other config is needed:
    - Gateway: `https://gateway.apiosk.com`
    - MCP: `https://mcp.apiosk.com/mcp`
 
@@ -53,7 +53,7 @@ Authorization: Bearer $APIOSK_CONNECT_TOKEN
 > **self-check → discover → preflight → call (with idempotency key) → log the
 > receipt.** Apiosk handles rail selection, settlement, retries, and the bank.
 
-### 1. Self-check — budget and rails
+### 1. Self-check, budget and rails
 
 ```bash
 curl -s https://gateway.apiosk.com/v1/me \
@@ -73,7 +73,7 @@ curl -s https://gateway.apiosk.com/v1/apis/weather \
   -H "X-Apiosk-Connect-Token: $APIOSK_CONNECT_TOKEN"
 ```
 
-Budget from `operations[i].price_usd`, not the top-level `price_usd` —
+Budget from `operations[i].price_usd`, not the top-level `price_usd` -
 multi-endpoint APIs differ per operation.
 
 ### 3. Preflight (free dry-run)
@@ -97,7 +97,7 @@ curl -s "https://gateway.apiosk.com/weather/current?city=Amsterdam" \
 ```
 
 Use a fresh UUID per logical call. Reuse the same key only to safely retry a
-5xx or timeout — a replay returns the cached result with no second charge.
+5xx or timeout, a replay returns the cached result with no second charge.
 
 ### 5. Log the receipt
 
@@ -107,7 +107,7 @@ prediction of the price.
 | Header | Meaning |
 | --- | --- |
 | `X-Apiosk-Payment-Rail` | `x402`, `sepa`, or `credits` |
-| `X-Apiosk-Price-Listed` | Authorized price (USDC, gross) — log this to trace spend |
+| `X-Apiosk-Price-Listed` | Authorized price (USDC, gross), log this to trace spend |
 | `X-Apiosk-Tx-Hash` | On-chain transaction hash (USDC only) |
 | `X-Apiosk-Idempotent-Replay` | `true` means a cached replay, no new charge |
 
@@ -115,9 +115,9 @@ prediction of the price.
 
 - Self-check before paid work; preflight anything non-trivial.
 - One fresh `Idempotency-Key` per logical call.
-- Never probe with real calls to learn a price — use `/v1/apis/{slug}` plus
+- Never probe with real calls to learn a price: use `/v1/apis/{slug}` plus
   preflight.
-- Never try to choose the rail or sign payments — the gateway does both.
+- Never try to choose the rail or sign payments: the gateway does both.
 - Never expose `APIOSK_CONNECT_TOKEN` anywhere user-visible.
 
 ## MCP instead of raw HTTP

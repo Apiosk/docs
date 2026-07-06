@@ -1,6 +1,6 @@
 ---
 title: "Publisher MCP"
-description: "Publish paid x402 routes straight from a coding agent — Claude Code, Cursor, Codex — through the hosted Apiosk MCP server."
+description: "Publish paid x402 routes straight from a coding agent, Claude Code, Cursor, Codex, through the hosted Apiosk MCP server."
 ---
 
 # Publisher MCP
@@ -17,7 +17,7 @@ upstream service. You keep 98% of every call; Apiosk keeps a 2% platform fee.
 
 ## Connect
 
-Publishing authenticates with a **provider API key** (`sk_live_…`) — the same
+Publishing authenticates with a **provider API key** (`sk_live_…`), the same
 key described in [Provider SDK keys](/guides/provider-sdk). Mint one in the
 provider portal under **Settings → API keys**, then add the server to your MCP
 client:
@@ -90,7 +90,7 @@ set `APIOSK_PROVIDER_TOKEN=sk_live_…` instead of the header.
 ```
 
 Lifecycle is honest by design: **new routes enter operator review**
-(`status: "pending_review"`) before they serve traffic — the same
+(`status: "pending_review"`) before they serve traffic, the same
 [publisher lifecycle](/guides/publisher-lifecycle) every listing goes through.
 On approval the route:
 
@@ -128,14 +128,14 @@ fallback). Your `settlement_address` receives 98% of every paid call.
 Beyond the gateway's canonical `/.well-known/x402`, the MCP server exposes:
 
 - `https://mcp.apiosk.com/.well-known/apiosk-routes.json` (alias
-  `https://mcp.apiosk.com/discovery`) — a compact index of every paid route
+  `https://mcp.apiosk.com/discovery`), a compact index of every paid route
   with name, URL, method, price, currency, and network.
-- `https://mcp.apiosk.com/openapi/<route_id>.json` — a per-route OpenAPI 3.1
+- `https://mcp.apiosk.com/openapi/<route_id>.json`: a per-route OpenAPI 3.1
   document with `x-price` extensions, generated live from the listing.
 
 ## Boundaries
 
-The Publisher MCP manages **standalone gateway listings** only — the same ones
+The Publisher MCP manages **standalone gateway listings** only, the same ones
 the provider portal manages. Marketplace [Connect](/guides/connect-marketplace)
 skills are a separate surface and cannot be created or modified through MCP.
 Euro off-ramp (SEPA payouts via KYB) remains a human flow in the provider
