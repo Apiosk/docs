@@ -1,25 +1,38 @@
 ---
 title: "Agent Wallets"
-description: "Public-safe explanation of the managed wallet workflow available in the dashboard."
+description: "Public-safe explanation of managed agent wallets, what still works, and why creating a new one is currently unavailable."
 ---
 
 # Agent Wallets
 
-The dashboard exposes a managed wallet workspace for operators who want a smoother paid-call flow.
+<Warning>
+**Agent-wallet creation is unavailable.** The legacy dashboard service that derived and encrypted managed wallet keys has been retired, so creating a new managed (custodial) wallet returns `custodial_wallet_creation_unavailable`. `dashboard.apiosk.com` now serves the provider portal, which has no agent-wallet workspace.
 
-## What you can do
+What still works: **existing managed wallets** are readable and still settle paid calls, and **connect tokens can still be minted** for them. If you need a wallet you can provision yourself today, run the local stdio MCP package (`npx -y @apiosk/mcp`) and create a local wallet, or use raw x402 mode with your own payer.
+</Warning>
 
-- create a new agent wallet
-- import an existing funded wallet
-- generate and rotate a connect string
-- test a live paid call
-- inspect wallet activity
-- manage funding actions
+## What a managed agent wallet is
 
-## Best use case
+A managed agent wallet is an Apiosk-held USDC wallet on Base that pays for gateway calls on your behalf, within configured spend limits, so an agent does not have to run its own x402 signing loop.
 
-Use the agent wallet flow when you want a repeatable operator-friendly payment path without building your own raw x402 signing loop for every call.
+## What you can still do with an existing wallet
+
+- read the wallet address, spend limits, and funding state (`apiosk_list_wallets` over MCP)
+- fund it with USDC on Base mainnet
+- mint and rotate a connect token or connect string for it
+- let paid gateway calls settle automatically against it
+- inspect the resulting payment activity in the provider portal under **Transactions**
+
+## What you cannot do
+
+- create a new managed wallet: this path is retired and returns `custodial_wallet_creation_unavailable`
+- import an existing funded wallet as a managed wallet
+
+## Alternatives while creation is unavailable
+
+- **Local wallet:** run the local stdio MCP package and create a wallet with `apiosk_wallet_create`. State is stored locally under `~/.apiosk`.
+- **Raw x402:** bring your own payer, sign the `402` challenge yourself, and retry with `x-payment`. See [Payment Options](/guides/payment-options).
 
 ## Important boundary
 
-The public docs can describe the workflow and the public gateway behavior, but they do not document the private fields, storage model, or internal token handling behind the managed wallet feature.
+The public docs describe the workflow and the public gateway behavior. They do not document the private fields, storage model, or internal token handling behind the managed wallet feature.

@@ -7,15 +7,17 @@ description: "Public-safe overview of the supported payment paths: managed walle
 
 There are four public payment modes you can reason about safely.
 
-## 1. Dashboard-managed wallet
+## 1. Managed agent wallet
 
 Best when you want the easiest operational flow.
 
-- create or import an agent wallet in the dashboard
-- generate a connect string or gateway-safe credential bundle
+- use an existing managed agent wallet
+- generate a connect string or gateway-safe credential bundle for it
 - let the wallet pay for gateway calls within the configured limits
 
-Use this when the operator wants a smoother repeated-call workflow.
+<Warning>
+Creating a new managed (custodial) wallet is currently unavailable: the legacy dashboard service that derived and encrypted wallet keys has been retired, and creation returns `custodial_wallet_creation_unavailable`. Existing managed wallets still settle calls, and connect tokens can still be minted for them. To provision a wallet yourself today, run the local stdio MCP package and create a local wallet, or use raw x402 mode with your own payer.
+</Warning>
 
 If you are using the local Apiosk MCP package, import that connect string through `apiosk_get_started` so the package can save it locally and verify the setup with a first call.
 
@@ -28,7 +30,7 @@ Best when you want direct control of the payer.
 - sign the payment challenge with your own payer
 - retry with `x-payment`
 
-The `402` may list several networks, Base and Solana are live, one `accepts` entry per network the API is configured for, all at the same USDC price. Pick the entry you can pay on and name that network in your payment payload; a Base entry is always included as fallback. See [Multi-chain Settlement](/guides/multichain).
+The `402` may list several networks, Base plus Polygon and Arbitrum where the facilitator supports them, one `accepts` entry per network the API is configured for, all at the same USDC price. Pick the entry you can pay on and name that network in your payment payload; a Base entry is always included as fallback. See [Multi-chain Settlement](/guides/multichain).
 
 Use this when you already have your own payment orchestration or want the most explicit proof path.
 
@@ -43,7 +45,7 @@ Best when the buyer is an EU business that prefers bank-side settlement instead 
 
 Use this when the buyer needs euro-denominated settlement, an IBAN paper trail, or already has a Mollie relationship.
 
-You can pin the rail per request with `X-Payment-Rail: sepa`. If you omit the header, the gateway auto-selects the cheapest viable rail and falls back when the preferred rail is unavailable.
+You can pin the rail per request with `X-Apiosk-Rail: sepa`. If you omit the header, the gateway auto-selects the cheapest viable rail and falls back when the preferred rail is unavailable.
 
 ## 4. Unpaid routes
 

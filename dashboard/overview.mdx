@@ -1,26 +1,34 @@
 ---
 title: "Dashboard Overview"
-description: "Public-safe guide to the main dashboard workflows for API operators."
+description: "Public-safe guide to the provider portal at dashboard.apiosk.com and the sections it actually contains."
 ---
 
 # Dashboard Overview
 
-The dashboard is the operator workspace around the public gateway.
+`dashboard.apiosk.com` serves the Apiosk **provider portal**, the operator workspace around the public gateway. The legacy dashboard backend that used to sit behind this host has been retired.
 
 ## Main sections
 
-### APIs
+The portal navigation is grouped as follows.
 
-Create listings, manage endpoint pricing, inspect payments, and copy the public gateway base URL for your API.
+| Group | Section | What it is for |
+| --- | --- | --- |
+| Overview | Home | Landing view with the current state of your account |
+| Sell | Products | Create and manage listings, endpoints, and pricing |
+| Sell | Analytics | Paid request volume, revenue, and API-level performance |
+| Connect | Marketplaces | Marketplace connections for your products |
+| Get paid | Get paid | The whole money route on one page: wallet, EUR account, bank, automatic payouts, plus the manual swap and payout history |
+| Get paid | Payment links | USDC payment links that settle straight to a connected wallet |
+| Get paid | Transactions | Individual settlement and payment records |
+| Account | Settings | Account, profile, and SDK & API keys |
+| Account | Support | Get help |
 
-### Agent Wallets
+There is also a **Payouts** view, but it is development-only and hidden in production.
 
-Manage funded agent wallets, connect strings, live wallet activity, and payment-related actions from one workspace.
-
-### Usage And Revenue
-
-Inspect paid request volume, current wallet spend, revenue earned, and payout state through the dashboard views.
+<Note>
+There is no "Agent Wallets", "APIs", or "Usage And Revenue" section in the portal. Listing management lives under **Products**, and the commercial numbers live under **Analytics** and **Transactions**.
+</Note>
 
 ## Public-safe framing
 
-This docs project describes what the dashboard lets an operator do. It does not document dashboard-only secrets, private storage design, or internal gateway implementation details.
+This docs project describes what the portal lets an operator do. It does not document portal-only secrets, private storage design, or internal gateway implementation details.

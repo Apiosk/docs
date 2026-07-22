@@ -1,0 +1,106 @@
+---
+title: "Payment webhooks"
+description: "Signed payment.* events with a timestamped HMAC. Verify over the raw bytes, reject stale timestamps, and never treat the webhook as authoritative."
+---
+
+# Payment webhooks
+
+When a checkout reaches an outcome, Apiosk Pay posts a signed event to the
+`webhook_url` on your marketplace. It fires on `paid`, `failed` and `cancelled`.
+
+The destination is **frozen onto the checkout at creation**, so changing your
+webhook URL mid-flight does not redirect events for payments already in progress.
+
+## Headers
+
+```text
+x-apiosk-event: payment.paid
+x-apiosk-signature: t=1753209600.v1=9f2c...
+Content-Type: application/json
+```
+
+## Body
+
+```json
+{
+  "id": "evt_...",
+  "event": "payment.paid",
+  "ts": 1753209600,
+  "data": {
+    "payment_id": "3f2a1b4c-...",
+    "marketplace_id": "...",
+    "merchant_id": "6f1c8e2a-...",
+    "order_ref": "order-1",
+    "status": "paid",
+    "amount_minor": 12500000,
+    "currency": "USDC",
+    "split": {
+      "seller_amount_minor": 11750000,
+      "marketplace_fee_minor": 500000,
+      "apiosk_fee_minor": 250000
+    },
+    "buyer_address": "0x...",
+    "tx_hash": "0x..."
+  }
+}
+```
+
+Amounts here are **minor units**, not dollar strings. `merchant_id` is the
+canonical Connect merchant UUID, the same value `seller.id` returned at creation.
+
+## Verifying
+
+The signature is `HMAC-SHA256` over the string `"{t}.{raw body}"`, keyed with
+your Connect webhook secret, hex encoded.
+
+```js
+import { createHmac, timingSafeEqual } from "node:crypto"
+
+function verify(rawBody, header, secret, toleranceSecs = 300) {
+  const { t, v1 } = Object.fromEntries(header.split(".").map((p) => p.split("=")))
+  if (Math.abs(Date.now() / 1000 - Number(t)) > toleranceSecs) return false
+
+  const expected = createHmac("sha256", secret).update(`${t}.${rawBody}`).digest("hex")
+  const a = Buffer.from(expected), b = Buffer.from(v1)
+  return a.length === b.length && timingSafeEqual(a, b)
+}
+```
+
+Three things go wrong here in practice:
+
+- **Verify over the raw bytes.** Parsing the JSON and re-serialising it reorders
+  keys and changes the signature. Capture the body before your framework touches
+  it.
+- **Check `t`.** The timestamp is what makes a captured event unusable later.
+  Ignoring it gives up replay protection entirely.
+- **Compare in constant time.** A byte-by-byte early return leaks the expected
+  signature over enough attempts.
+
+<Note>
+If the platform has no webhook secret configured, delivery is **skipped**, not
+sent unsigned. An unsigned webhook is indistinguishable from a forged one.
+</Note>
+
+## Delivery is best-effort
+
+One attempt, a 5 second timeout, no retries. It is a nudge to go and look, and
+your integration must be correct without it.
+
+<Warning>
+Never release goods on the webhook alone. It can be late, lost, replayed or
+forged. Confirm with `GET /v1/payments/{id}`, which is the authority.
+</Warning>
+
+## Not the same as merchant.activated
+
+Connect's own `merchant.activated` webhook, fired by the gateway when a seller
+finishes onboarding, uses the same header names but a **bare** HMAC of the body
+with no timestamp, and retries three times. If you verify both in one handler,
+do not share the verification code: a bare-HMAC verifier will reject every
+payment event, and a timestamped verifier will reject every activation.
+
+## Related links
+
+- Lifecycle: [/pay/lifecycle](/pay/lifecycle)
+- API reference: [/pay/checkout-api](/pay/checkout-api)
+- Connect (marketplace): [/guides/connect-marketplace](/guides/connect-marketplace)

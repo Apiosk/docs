@@ -1,0 +1,97 @@
+---
+title: "Naming a seller"
+description: "A checkout names a seller by ID, never by name and never by wallet address. Either your own external_seller_id or the Connect merchant UUID works, always scoped to your marketplace."
+---
+
+# Naming a seller
+
+Every checkout has to say who is being paid. It does that with **`seller_id`**,
+and that field takes an **ID**, never a display name and never a wallet address.
+
+```json
+{ "seller_id": "northwind-research", "amount": "12.50", "product_name": "Quick company lookup" }
+```
+
+## Two ID forms, both accepted
+
+Which ID an integrator holds depends on how they wired Connect, so both work:
+
+| Form | Example | Where you got it |
+| --- | --- | --- |
+| Your own `external_seller_id` | `northwind-research` | you supplied it when you onboarded the seller |
+| The Connect merchant UUID | `6f1c8e2a-...` | returned by Connect when the seller onboarded |
+
+The service tells them apart by shape: a value that parses as a UUID is matched
+against `connect_merchants.id`, anything else against `external_seller_id`.
+
+Both lookups are **always scoped to the marketplace behind your API key**.
+`external_seller_id` is unique per marketplace, not globally, so an unscoped
+lookup would let one marketplace pay, or discover, another's sellers. There is
+no request that can reach a seller outside your own marketplace.
+
+`merchant_id` is accepted as an alias for `seller_id`, for integrations that
+already speak in Connect's vocabulary.
+
+## Why not a name
+
+A display name is not a handle. It is not unique within a marketplace, and it
+changes the moment a seller renames themselves. Two sellers called "Northwind"
+are an ambiguity a payment API cannot resolve safely, and a checkout that
+guesses wrong pays the wrong person.
+
+`seller_name` still exists, but only as a **display override**: it changes the
+line the buyer reads on the checkout page and has no bearing on who gets paid.
+Left out, the page shows the seller's own Connect display name.
+
+<Warning>
+There is no field for a wallet address, deliberately. The payout address is
+resolved through Connect, where the seller proved control of it with a
+Sign-In-With-Ethereum signature. If an address were a body field, a compromised
+or careless integration could redirect any seller's takings to an address of its
+choosing.
+</Warning>
+
+## Store the ID you get back
+
+The response echoes the canonical Connect merchant UUID, whichever form went in:
+
+```json
+{
+  "marketplace": { "id": "...", "name": "Acme Data Exchange" },
+  "seller": { "id": "6f1c8e2a-...", "name": "Northwind Research" }
+}
+```
+
+So an integration that onboarded a seller under its own ID can record the
+canonical one on first use and move to it later, without a migration.
+
+## When a seller cannot be paid
+
+Resolution can fail in three ways, and each is a distinct status because each has
+a different fix:
+
+| Status | Error | Meaning |
+| --- | --- | --- |
+| 404 | `unknown_seller` | no seller with that ID is onboarded **in this marketplace** |
+| 403 | `seller_suspended` | the seller exists but is suspended |
+| 409 | `seller_not_payable` | onboarding is unfinished, there is no verified payout wallet yet |
+
+Only an **active and verified** wallet counts. A merchant part-way through
+Connect resolves with no wallet, and the checkout is refused at creation rather
+than discovered at payment time: a session that cannot pay its recipients is
+worse than no session, because by then the buyer has already left your store.
+
+`seller_not_payable` is not a retry. It means a person has to finish a step. The
+provider portal shows, per seller, whether a checkout naming them would be
+accepted right now.
+
+<Note>
+A seller in `draft` status **can** be paid, as long as their wallet is verified.
+Only `suspended` is refused.
+</Note>
+
+## Related links
+
+- Quickstart: [/pay/quickstart](/pay/quickstart)
+- API reference: [/pay/checkout-api](/pay/checkout-api)
+- Onboarding a seller: [/guides/connect-marketplace](/guides/connect-marketplace)

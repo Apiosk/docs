@@ -19,7 +19,7 @@ upstream service. You keep 98% of every call; Apiosk keeps a 2% platform fee.
 
 Publishing authenticates with a **provider API key** (`sk_live_…`), the same
 key described in [Provider SDK keys](/guides/provider-sdk). Mint one in the
-provider portal under **Settings → API keys**, then add the server to your MCP
+provider portal under **Settings → SDK & API keys**, then add the server to your MCP
 client:
 
 ```json
@@ -44,7 +44,7 @@ claude mcp add --transport http apiosk https://mcp.apiosk.com/mcp \
 
 <Note>
 Without a key the discovery tools still work; the publisher tools return a
-`401` telling you how to get one. For local stdio installs of `@apiosk/mcp`,
+`401` telling you how to get one. For local stdio installs of the npm package `@apiosk/mcp` (binary `apiosk-mcp-server`),
 set `APIOSK_PROVIDER_TOKEN=sk_live_…` instead of the header.
 </Note>
 
@@ -118,10 +118,12 @@ Run `test_x402_route` once it's live to confirm the `402` behavior end to end:
 
 ## Settlement and networks
 
-Pricing is per call in USDC. Base is the default settlement network; Polygon,
-Arbitrum, and Solana can be requested per route and follow the
+Pricing is per call in USDC. Base is the default settlement network; only
+`base`, `polygon`, and `arbitrum` actually settle, and they follow the
 [multi-chain settlement](/guides/multichain) rules (Base always remains the
-fallback). Your `settlement_address` receives 98% of every paid call.
+fallback). `solana` is still accepted by the tool's input validation but no
+longer resolves to a USDC token: the publisher tool logs a warning and silently
+falls back to Base, so do not request it. Your `settlement_address` receives 98% of every paid call.
 
 ## Machine-readable discovery
 

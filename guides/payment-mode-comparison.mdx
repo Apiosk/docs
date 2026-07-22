@@ -7,7 +7,7 @@ description: "Side-by-side comparison of managed wallet mode, raw x402 mode, and
 
 | Mode | Best for | Strengths | Tradeoff |
 | --- | --- | --- | --- |
-| Managed wallet (USDC) | operator workflows | easiest repeated paid-call flow, 2% platform fee | less explicit than raw x402 |
+| Managed wallet (USDC) | operator workflows | easiest repeated paid-call flow, 2% platform fee | less explicit than raw x402, and new wallets cannot currently be created |
 | Raw x402 (USDC) | protocol-level integrations | maximum control over payment proofs, 2% platform fee | more implementation work |
 | SEPA Direct Debit | EU buyers needing bank settlement | euro IBAN settlement, no per-transaction Apiosk fee | monthly subscription, T+1/T+2 settlement |
 | Free routes | public access or demos | no payment flow needed | no payment enforcement |
@@ -16,9 +16,13 @@ description: "Side-by-side comparison of managed wallet mode, raw x402 mode, and
 
 Use when:
 
-- the operator is working from the dashboard
+- you already have a managed agent wallet
 - repeated paid calls matter more than protocol-level control
 - you want fast setup with less payment plumbing
+
+<Warning>
+New managed (custodial) wallets cannot be created right now: the legacy dashboard service behind wallet key derivation was retired and creation returns `custodial_wallet_creation_unavailable`. Existing managed wallets keep settling calls and connect tokens can still be minted for them. If you have no managed wallet, use raw x402 mode or a local wallet from the stdio MCP package.
+</Warning>
 
 ## Raw x402
 
@@ -36,7 +40,7 @@ Use when:
 - a recurring B2B payment relationship under an IBAN mandate is preferable to on-chain settlement
 - you prefer a monthly subscription with no per-transaction platform fee
 
-Send `X-Payment-Rail: sepa` to pin the rail explicitly. Per-call debits are batched in the gateway's SEPA settlement ledger and reconciled by Mollie on the bank side.
+Send `X-Apiosk-Rail: sepa` to pin the rail explicitly. Per-call debits are batched in the gateway's SEPA settlement ledger and reconciled by Mollie on the bank side.
 
 ## Free routes
 

@@ -52,7 +52,35 @@ curl -X POST https://gateway.apiosk.com/v1/marketplaces/{id}/publishable-keys \
   -H "Authorization: Bearer <portal-session>"
 ```
 
-## 2. Onboard a merchant, "Connect with Apiosk"
+## 2. Onboard a merchant
+
+There are two ways in. Both end at the same portal wizard and both produce a
+merchant you can name at checkout, they differ in who starts the flow.
+
+### Option A: a hosted onboarding link (server-to-server)
+
+Mint a signed link with your secret key. **`external_seller_id` is required**: it
+is your own ID for this seller, and it is what you will use to name them later.
+
+```bash
+curl -X POST https://gateway.apiosk.com/v1/merchants/onboarding-link \
+  -H "Authorization: Bearer apk_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{ "external_seller_id": "northwind-research" }'
+```
+
+```json
+{ "url": "https://dashboard.apiosk.com/connect/onboard?token=...",
+  "token": "...", "expires_at": "..." }
+```
+
+The link is good for 30 minutes. The portal exchanges the token via
+`POST /v1/merchants/onboarding/verify`, which upserts on
+`(marketplace_id, external_seller_id)`, so re-minting a link for a seller you
+already onboarded resumes them rather than duplicating them. An expired or
+tampered token answers `link_expired` or `invalid_link`.
+
+### Option B: the "Connect with Apiosk" embed
 
 Drop the embed on your own site. The publishable key identifies the marketplace;
 the embed opens a hosted, signed onboarding session in the Apiosk portal.
@@ -64,8 +92,21 @@ the embed opens a hosted, signed onboarding session in the Apiosk portal.
 ```
 
 The embed calls `POST /v1/connect/embed/start`, which validates the publishable
-key and returns a short-lived **merchant session**. The portal wizard then walks
-the merchant through three steps:
+key and returns a short-lived **merchant session** along with the new
+`merchant_id`:
+
+```json
+{ "merchant_id": "6f1c8e2a-...", "marketplace_id": "...",
+  "marketplace_name": "Acme Data Exchange", "session": "...", "status": "draft" }
+```
+
+Because a browser visitor has no ID you assigned, the embed derives one and
+namespaces it as `embed:<ref>`, so embed-created sellers can never collide with
+the IDs you mint yourself.
+
+### The wizard
+
+Either way, the portal then walks the merchant through three steps:
 
 1. **Profile**, `POST /v1/merchants/profile` saves display name and contact email.
 2. **Wallet**, `POST /v1/siwe/nonce` then `POST /v1/siwe/verify` prove control of
@@ -76,10 +117,48 @@ the merchant through three steps:
 <Note>
 A merchant can only earn once it is **active** and has a verified payout wallet.
 Skill creation and every charge re-check this, an unverified merchant's skills
-cannot be charged.
+cannot be charged. Activating without a verified wallet answers
+`409 wallet_required`.
 </Note>
 
-## 3. Publish a skill
+## 3. Learn when a merchant is ready
+
+When a merchant activates, the gateway posts `merchant.activated` to your
+marketplace's webhook URL. In the link flow this is how you learn the canonical
+merchant ID.
+
+```json
+{ "event": "merchant.activated", "marketplace_id": "...",
+  "merchant_id": "6f1c8e2a-...", "ts": 1753209600 }
+```
+
+Headers are `x-apiosk-event` and `x-apiosk-signature`, and delivery is retried up
+to three times.
+
+<Warning>
+This signature is a **bare** HMAC of the body, with no timestamp. The payment
+webhooks from `pay.apiosk.com` use a different, timestamped scheme, see
+[/pay/webhooks](/pay/webhooks). Do not share one verifier between them: each
+will reject the other's events.
+</Warning>
+
+## 4. How you identify a merchant afterwards
+
+A merchant is named by **ID**, never by display name. A name is not unique within
+a marketplace and it changes when a seller renames themselves.
+
+Two forms are accepted, and both are always scoped to your own marketplace, so no
+request can reach or discover another marketplace's merchants:
+
+| Form | Example | Where you got it |
+| --- | --- | --- |
+| Your own `external_seller_id` | `northwind-research` | you supplied it at onboarding |
+| The Connect merchant UUID | `6f1c8e2a-...` | returned by the embed or the activation webhook |
+
+Store the ID against your own product listings. You will send it as `merchant_id`
+when publishing a skill, and as `seller_id` when creating a hosted checkout.
+
+## 5. Publish a skill
 
 With the merchant onboarded, register that merchant's billable product
 server-to-server with your secret key. Include an `Idempotency-Key` so retries
@@ -91,7 +170,7 @@ curl -X POST https://gateway.apiosk.com/v1/skills \
   -H "Idempotency-Key: $(uuidgen)" \
   -H "Content-Type: application/json" \
   -d '{
-    "merchant_id": "<merchant-id>",
+    "merchant_id": "6f1c8e2a-...",
     "external_skill_ref": "monthly-report",
     "name": "Monthly report",
     "price_amount": 1000000,
@@ -104,7 +183,7 @@ split and the merchant's wallet at creation, so later config changes never
 silently re-price an existing product. Use `PUT /v1/skills/{id}` to change price
 or the `active` flag.
 
-## 4. Charge a skill and split the payment
+## 6. Charge a skill and split the payment
 
 An agent calls the skill's `charge_url`. Unpaid, it returns an x402 `402` that
 advertises the gross price and the split; with a valid `x-payment` proof the
@@ -130,12 +209,33 @@ while Apiosk keeps its 2%. The three amounts always sum to the gross:
 | Apiosk | 2% platform fee |
 
 <Note>
-Connect settles once to the platform wallet and splits at payout time, there is
-no on-chain splitter contract to integrate.
+**The skill charge** settles once to the platform wallet and splits at payout
+time, there is no on-chain splitter contract to integrate. The hosted checkout
+described below works the other way round: it splits on-chain, at payment time.
 </Note>
+
+## Selling to humans instead: hosted checkout
+
+A skill charge is an agent paying over x402. When the buyer is a **person with a
+browser**, use the hosted checkout at `pay.apiosk.com` instead: you create a
+checkout with the same `apk_live_` key, redirect the buyer, and the buyer's own
+wallet pays the merchant, you, and Apiosk in a single transaction.
+
+```bash
+curl -X POST https://pay.apiosk.com/v1/checkout \
+  -H "Authorization: Bearer apk_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{ "seller_id": "northwind-research", "amount": "12.50",
+        "product_name": "Quick company lookup" }'
+```
+
+`seller_id` takes either merchant ID form from step 4. See
+[/pay/overview](/pay/overview).
 
 ## Related links
 
+- Hosted checkout: [/pay/overview](/pay/overview)
+- Naming a seller: [/pay/sellers](/pay/sellers)
 - Publishers (standalone): [/guides/publishers](/guides/publishers)
 - Payment model: [/overview/payment-model](/overview/payment-model)
 - Boundaries: [/guides/boundaries](/guides/boundaries)

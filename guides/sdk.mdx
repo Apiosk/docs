@@ -75,8 +75,16 @@ settles against the Base entry.
 
 ## Alternative auth modes
 
-For dashboard-managed access, pass a connect token or an explicit authorization
+For managed access, pass a connect token or an explicit authorization
 header instead of a private key:
+
+<Warning>
+Connect tokens are still mintable and existing managed (custodial) wallets
+still settle calls, but creating a **new** managed wallet is currently
+unavailable: that path returns `custodial_wallet_creation_unavailable` because
+the legacy dashboard service behind wallet key derivation was retired. Use a
+private key you control, or a wallet that already exists.
+</Warning>
 
 ```js
 const client = new ApioskClient({

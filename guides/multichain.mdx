@@ -14,15 +14,19 @@ out on that same network.
 
 | Network | `network` id | USDC asset | Status |
 | --- | --- | --- | --- |
-| Base | `base` | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | **Live** |
-| Solana | `solana` | `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v` | **Live** |
-| Polygon | `polygon` | `0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359` | Coming soon |
-| Arbitrum | `arbitrum` | `0xaf88d065e77c8cC2239327C5EDb3A432268e5831` | Coming soon |
+| Base | `base` | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | **Live, always on** |
+| Polygon | `polygon` | `0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359` | Live when the facilitator supports it |
+| Arbitrum | `arbitrum` | `0xaf88d065e77c8cC2239327C5EDb3A432268e5831` | Live when the facilitator supports it |
 
-Polygon and Arbitrum are enabled as facilitator support lands. The currently
-enabled set is published live in `meta.settlement.networks` of the discovery
-document at `https://gateway.apiosk.com/.well-known/x402`, which also lists the
-per-resource `accepts` entries with their networks.
+Base is never gated: it is the revenue path and is always offered. Polygon and
+Arbitrum are enabled only when the configured facilitator advertises a v1
+`exact` kind for them (matched by v1 name or CAIP-2 alias). If that capability
+check fails for any reason, the gateway degrades to Base-only. Solana is not a
+settlement network on the gateway.
+
+The currently enabled set is published live in `meta.settlement.networks` of the
+discovery document at `https://gateway.apiosk.com/.well-known/x402`, which also
+lists the per-resource `accepts` entries with their networks.
 
 ## The multi-accept 402
 
@@ -34,8 +38,8 @@ network the API is configured for:
 - any additionally configured chains follow
 
 Every entry prices the same resource at the same USDC amount; only `network`,
-`asset`, `payTo`, and `extra` differ. Solana entries carry `extra.feePayer`
-(the facilitator's fee payer) instead of the EVM EIP-712 `extra.{name,version}`.
+`asset`, and `payTo` differ. All entries are EVM entries and carry the EIP-712
+`extra.{name,version}` domain.
 
 ```json
 {
@@ -55,15 +59,15 @@ Every entry prices the same resource at the same USDC amount; only `network`,
     },
     {
       "scheme": "exact",
-      "network": "solana",
+      "network": "polygon",
       "maxAmountRequired": "60000",
       "resource": "https://gateway.apiosk.com/weather/current",
       "description": "Current weather conditions",
       "mimeType": "application/json",
-      "payTo": "7sPjV9dQzR4mK2xW8yBtF5cN1aHgU6eLoJpTq3ZvMnED",
+      "payTo": "0x8f3C1a9bF2d47e05A6b21C9d8E4f70b3D5a6E210",
       "maxTimeoutSeconds": 60,
-      "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-      "extra": { "feePayer": "FaciL1tatorFeePayerPubkey11111111111111111111" }
+      "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "extra": { "name": "USDC", "version": "2" }
     }
   ],
   "x402Version": 1
@@ -74,9 +78,8 @@ Every entry prices the same resource at the same USDC amount; only `network`,
 
 1. Read the `accepts[]` array from the `402`.
 2. Pick the entry whose `network` you can pay on.
-3. Sign and pay per that entry (EVM entries via the EIP-712 domain in `extra`,
-   Solana entries via the facilitator fee payer in `extra.feePayer`).
-4. Put the network name (`base`, `solana`, `polygon`, `arbitrum`) in the payment
+3. Sign and pay per that entry, using the EIP-712 domain in `extra`.
+4. Put the network name (`base`, `polygon`, `arbitrum`) in the payment
    payload you send in `x-payment`: the gateway settles against the matching
    `accepts` entry.
 
@@ -88,18 +91,19 @@ chain your payer holds USDC on.
 Publishers configure settlement networks by attaching payout wallets in the
 provider portal:
 
-- attach **up to 4 payout wallets per API: exactly one per chain**, chosen
+- attach **up to 3 payout wallets per API: exactly one per network**, chosen
   from your verified wallets
-- the connected wallet's chain is auto-detected: Base, Polygon, and Arbitrum via
-  the wallet's active chain; Solana via Phantom
-- wallet ownership must be verified before a wallet can be attached: EVM wallets
-  sign the ownership message with an EIP-191 signature, Solana wallets sign the
-  same message with Phantom (ed25519)
+- the connected wallet's chain is auto-detected from the wallet's active chain:
+  Base, Polygon, or Arbitrum
+- wallet ownership must be verified before a wallet can be attached: the wallet
+  signs the ownership message with an EIP-191 signature
+- `solana` is not an accepted value: the payout wallet RPC raises
+  `unsupported payout network` for anything outside base, polygon, and arbitrum
 
 ## Payout routing
 
-Earnings settle to the wallet of the chain the buyer paid on: pay on Solana,
-and the publisher's Solana wallet receives the payout; pay on Base, and the
+Earnings settle to the wallet of the chain the buyer paid on: pay on Polygon,
+and the publisher's Polygon wallet receives the payout; pay on Base, and the
 Base wallet does. The split is unchanged, **98% to the publisher, 2% platform
 fee**, on every network.
 

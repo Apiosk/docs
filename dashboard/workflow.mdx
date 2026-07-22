@@ -1,20 +1,22 @@
 ---
 title: "Workflow Map"
-description: "The recommended public-safe dashboard workflow from onboarding through live payments."
+description: "The recommended public-safe provider portal workflow from onboarding through live payments."
 ---
 
 # Workflow Map
 
-This is the simplest operator path through the dashboard.
+This is the simplest operator path through the provider portal at
+`dashboard.apiosk.com`.
 
-## 1. Add the API
+## 1. Add the product
 
-Choose one onboarding path:
+Go to **Products** and start an import. Choose one source:
 
-- Manual
-- GitHub
-- GitLab
-- OpenAPI spec import
+- Import from documentation
+- x402 endpoints
+- Upload API schema (OpenAPI)
+- Import from GitHub
+- Import from GitLab
 
 ## 2. Configure core listing data
 
@@ -37,18 +39,25 @@ Review the endpoints you want to expose and decide:
 
 ## 4. Review the gateway URL
 
-Use the dashboard gateway view to copy the public gateway base URL and reason about the paid request flow.
+The import's final step shows the public gateway base URL for the product, so
+you can reason about the paid request flow.
 
-## 5. Test the payment path
+## 5. Submit for review
+
+A new listing is saved as `pending` and only serves traffic after an Apiosk
+admin approves it. See [Publisher Lifecycle](/guides/publisher-lifecycle).
+
+## 6. Test the payment path
 
 Choose one of the public payment modes:
 
-- managed wallet flow
+- managed agent wallet flow (existing wallets only, see
+  [Agent Wallets](/dashboard/agent-wallets))
 - raw x402 proof flow
 
-## 6. Monitor payments and usage
+## 7. Monitor payments and usage
 
-Once live, use the dashboard to inspect:
+Once live, use **Analytics** and **Transactions** to inspect:
 
 - paid request volume
 - revenue

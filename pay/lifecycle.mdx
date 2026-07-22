@@ -1,0 +1,88 @@
+---
+title: "Checkout lifecycle"
+description: "The six statuses a checkout moves through, the two clocks that bound it, and why the on-chain receipt decides the outcome rather than the transaction hash."
+---
+
+# Checkout lifecycle
+
+## The flow
+
+```text
+  marketplace                 pay.apiosk.com                    buyer
+     |
+     |  POST /v1/checkout --------> resolve seller wallet,
+     |                              freeze the split
+     |  <--------------------------- { id, url, split }
+     |
+     |  redirect the buyer to /<id> -------------------------->  the page
+     |                              GET  /v1/session/:id    <--  connect wallet
+     |                              POST .../prepare        <--  sign the permit
+     |                          -------------------------->      calldata
+     |                              POST .../pay           <--   broadcast, hash
+     |                              GET  .../status  -- read the receipt --+
+     |  <-- webhook (advisory) ----- mark paid  <---------------------------+
+     |                               redirect ------------------>  return_url
+     |
+     |  GET /v1/payments/:id ------> authoritative status
+```
+
+## Statuses
+
+| Status | Meaning |
+| --- | --- |
+| `pending` | created, payable, nothing broadcast yet |
+| `confirming` | a transaction hash has been claimed, the receipt is being read |
+| `paid` | the receipt verified, terminal |
+| `failed` | the transaction reverted or was not found in time, still recoverable |
+| `expired` | nobody paid inside the window |
+| `cancelled` | the buyer backed out, terminal |
+
+`paid` and `cancelled` are terminal. `failed` is not: a checkout can be retried
+from `failed`, and a transaction that lands late is still picked up, so a slow
+chain does not cost the buyer their money.
+
+## Two clocks
+
+**20 minutes to start paying.** A checkout is payable for 20 minutes from
+creation. After that the link stops working and the buyer is told to start again
+from your store.
+
+**10 minutes to confirm.** Once a transaction hash is attached, the session
+clock stops mattering and only the chain decides. If no receipt appears within
+10 minutes the payment goes to `failed`, and even then a late-landing
+transaction is re-checked and can still settle it.
+
+This ordering matters: an expiry that could fire after a buyer has already
+broadcast would mark a paid checkout unpaid.
+
+## Why the hash is not the proof
+
+`POST /v1/payments/{id}/pay` records a hash, and anyone can post any hash. What
+settles a checkout is the **receipt**, and it is only accepted when the
+transaction carries a split event naming **this** checkout, plus a matching
+transfer for every expected leg, with each transfer consumed once.
+
+That last clause is the point: without it, one transfer could be counted twice
+to satisfy two legs, and a payment that shorted the marketplace would verify as
+complete.
+
+A hash already used to pay another checkout is rejected outright, so a buyer
+cannot present one payment as settling two.
+
+<Note>
+An RPC failure while reading a receipt leaves the payment `pending` and is
+retried on the next poll. The service never guesses an outcome it could not
+read.
+</Note>
+
+## What the marketplace should do
+
+Poll or wait for the webhook, then confirm with `GET /v1/payments/{id}` before
+you release anything. The webhook tells you **when** to look. This endpoint tells
+you **what is true**.
+
+## Related links
+
+- API reference: [/pay/checkout-api](/pay/checkout-api)
+- Webhooks: [/pay/webhooks](/pay/webhooks)
+- Overview: [/pay/overview](/pay/overview)

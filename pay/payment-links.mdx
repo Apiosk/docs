@@ -1,0 +1,49 @@
+---
+title: "Payment links"
+description: "A one-recipient payment link, created in the provider portal and payable by any wallet. No split, no fee, no checkout session."
+---
+
+# Payment links
+
+A payment link is the simpler half of `pay.apiosk.com`: a provider hands a link
+to whoever owes them, and that person pays it with any wallet.
+
+It is **not** a checkout. There is one recipient, one transfer, no fee split, and
+Apiosk takes nothing.
+
+| | Payment link | Checkout |
+| --- | --- | --- |
+| Created by | the provider portal | `POST /v1/checkout` |
+| Recipients | one | three, atomically |
+| Fees | none | marketplace fee plus 2% |
+| Token | any ERC-20 | USDC |
+| Return URL | none | optional |
+| Cancel | in the portal | `POST /v1/payments/{id}/cancel` |
+
+## Paying one
+
+The hosted page reads the link, then posts the broadcast hash:
+
+```bash
+curl https://pay.apiosk.com/v1/links/{id}/status
+curl -X POST https://pay.apiosk.com/v1/links/{id}/pay \
+  -H "Content-Type: application/json" \
+  -d '{ "tx_hash": "0x..." }'
+```
+
+The session it renders carries a title, the amount, the token symbol and network,
+and prebuilt calldata for a single `transfer`. As everywhere in this service, no
+recipient address is exposed.
+
+Amounts are carried as strings end to end, because a link can be denominated in
+any token and an 18-decimal amount does not survive a JavaScript number.
+
+<Note>
+Payment links are created in the provider portal, where the feature is currently
+limited to enabled accounts. There is no public API to create one.
+</Note>
+
+## Related links
+
+- Hosted checkout: [/pay/overview](/pay/overview)
+- API reference: [/pay/checkout-api](/pay/checkout-api)

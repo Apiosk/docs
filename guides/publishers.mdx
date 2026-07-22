@@ -50,7 +50,9 @@ Use `POST /v1/apis/register` to publish a community API.
 }
 ```
 
-The gateway performs a public health check against the HTTPS endpoint and saves the listing as active or inactive based on the result.
+The gateway performs a public health check against the HTTPS endpoint, then saves the listing as `pending`.
+
+Publishing is gated on operator review. A provider cannot put a listing straight into `active`: any provider-initiated transition to `active` is rewritten to `pending`, `submitted_for_review_at` is stamped, and the listing stays hidden from the catalog and serves no traffic until an Apiosk admin approves it. See [Publisher Lifecycle](/guides/publisher-lifecycle).
 
 ## Manage your listings
 

@@ -1,0 +1,71 @@
+---
+title: "x402 v1 and v2"
+description: "Every paid 402 is served in both x402 dialects at once, and the gateway accepts a payment proof in either header. What that means for your client."
+---
+
+# x402 v1 and x402 v2
+
+The x402 spec moved on, and clients did not move together. Rather than pick a
+side and break half the ecosystem, the gateway speaks **both dialects on every
+paid response**, and accepts a payment proof in **either header**.
+
+Most integrators never need this page: an x402 SDK handles it. Read on if you
+are writing the `402` loop yourself, or debugging a client that pays correctly
+but is still refused.
+
+## The challenge, one 402, two dialects
+
+A paid route answers `HTTP 402` carrying both at once:
+
+| Dialect | Where it rides | Shape |
+| --- | --- | --- |
+| **v2** | the base64-encoded `PAYMENT-REQUIRED` **header** | `accepts[]` with `amount` in atomic units and a CAIP-2 network id |
+| **v1** | the JSON **body** | `accepts[]` with `maxAmountRequired` and bare network names like `base` |
+
+Alongside the v2 header the response also carries `X-Payment-Amount`,
+`X-Payment-Currency` and `X-Payment-Protocol`.
+
+A v1 client reads the body and ignores the header. A v2 client reads the header
+and ignores the body. Neither has to know the other exists.
+
+<Warning>
+The two carry the same price in **different units and different network naming**.
+`amount` is atomic units, `maxAmountRequired` is the v1 field, and networks are
+CAIP-2 ids in the header but bare names in the body. Reading `amount` from one
+and the network from the other produces a payment that verifies against nothing.
+Pick one dialect and stay inside it.
+</Warning>
+
+## The proof, either header
+
+```text
+PAYMENT-SIGNATURE: <signed payment>   # x402 v2, preferred
+X-Payment: <signed payment>           # x402 v1, still accepted
+```
+
+The gateway checks `PAYMENT-SIGNATURE` first and falls back to `X-Payment`, so
+v1 and v2 clients can pay the same route. New integrations should send
+`PAYMENT-SIGNATURE`.
+
+Most of these docs show `x-payment`, because it is the header the widely
+deployed SDKs still send. It keeps working. It is not the header to reach for in
+new code.
+
+## Which one your client speaks
+
+- **x402-fetch and the older reference SDKs**: v1. They parse the body and send
+  `x-payment`.
+- **x402scan's embedded wallet and current reference SDKs**: v2. They parse the
+  `PAYMENT-REQUIRED` header and send `PAYMENT-SIGNATURE`.
+- **`@apiosk/sdk`**: handles the negotiation for you, see [/guides/sdk](/guides/sdk).
+
+If a payment is rejected as malformed, the usual cause is mixing dialects, not a
+bad signature: an amount taken from the v2 header paired with a bare network name
+from the v1 body, or the reverse.
+
+## Related links
+
+- Consumer flow: [/guides/consumers](/guides/consumers)
+- Payment options: [/guides/payment-options](/guides/payment-options)
+- Multi-chain settlement: [/guides/multichain](/guides/multichain)
+- Errors and retries: [/guides/errors-and-retries](/guides/errors-and-retries)

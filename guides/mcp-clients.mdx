@@ -5,7 +5,41 @@ description: "Connect Apiosk to ChatGPT, Claude Code, Codex, and other MCP clien
 
 # MCP Clients
 
-Apiosk supports both hosted remote MCP and local stdio MCP. Once connected, the client can use live Apiosk tools like `apiosk_help`, `apiosk_search`, `apiosk_get_api`, `apiosk_execute`, `apiosk_get_started`, and dynamic API-specific tools generated from the catalog.
+Apiosk supports both hosted remote MCP and local stdio MCP.
+
+## Tools you get
+
+The hosted server ships a deliberately lean buyer surface so agents are not
+forced to reason about a large tool list. A buyer connection (OAuth, connect
+token, or pre-auth) sees exactly these ten tools, plus the dynamic
+API-specific tools generated from the catalog:
+
+| Tool | What it does |
+| --- | --- |
+| `apiosk_help` | Orientation and next-step guidance |
+| `apiosk_search` | Keyword search across the catalog |
+| `apiosk_get_api` | Full detail for one listing |
+| `apiosk_execute` | Call a listed API, paying if the route is paid |
+| `apiosk_discover` | Browse the catalog |
+| `apiosk_explore` | Explore listings and their operations |
+| `apiosk_inspect_x402` | Inspect any external x402 resource's `402` challenge |
+| `apiosk_fetch_paid` | Pay and fetch an external x402 resource |
+| `apiosk_payment_guide` | Explain the payment modes and how to get funded |
+| `apiosk_list_wallets` | Show wallet address, spend limits, and funding |
+
+Nothing is actually lost by the trimmed list: **every hidden tool is still
+dispatchable by name**, so a client that already knows a tool name can call it.
+The full 28-tool surface is one environment flag away, set
+`APIOSK_MCP_FULL_TOOLS=true` on the server.
+
+Authenticating with a provider key (`sk_live_`) swaps the buyer surface for a
+publishing surface: `apiosk_help`, `apiosk_payment_guide`, `apiosk_search`,
+`apiosk_get_api`, plus the seven publisher tools. Managed-wallet CRUD is
+excluded from that surface because it needs a dashboard session JWT that a
+provider key does not carry. See [/guides/publisher-mcp](/guides/publisher-mcp).
+
+`apiosk_get_started` is not part of the hosted set: it writes local wallet or
+connect-token state and is only available in the local stdio package.
 
 ## GPT-native clients
 
@@ -15,11 +49,9 @@ If you are connecting Apiosk to ChatGPT or another remote MCP client, use the ho
 https://mcp.apiosk.com/mcp
 ```
 
-Fallback if your apex proxy is deployed:
-
-```text
-https://apiosk.com/mcp
-```
+`https://apiosk.com/mcp` is a live alias for the same server (the apex host
+proxies it), so either URL works. Prefer the canonical
+`https://mcp.apiosk.com/mcp`.
 
 ### Quick setup
 
@@ -60,7 +92,8 @@ https://apiosk.com/mcp
 
 ### Billing behavior
 
-- Hosted GPT-native MCP clients authenticate as your dashboard session.
+- Hosted GPT-native MCP clients authenticate as your Apiosk session and reuse the managed wallets and connect tokens that session already has.
+- Creating a **new** managed (custodial) wallet from the hosted server is currently unavailable: it returns `custodial_wallet_creation_unavailable` because the legacy dashboard service that derived and encrypted wallet keys has been retired. Existing managed wallets are still readable and still settle calls, and connect tokens can still be minted. To provision a wallet yourself, run the local stdio package and use `apiosk_wallet_create`.
 - Direct gateway calls with `X-Apiosk-Connect-Token` or local wallet-backed `x-payment` proofs remain the path for raw agent-wallet and x402 execution.
 - If you need a specific rail, choose the runtime and auth mode deliberately instead of assuming all clients settle the same way.
 
@@ -69,7 +102,7 @@ https://apiosk.com/mcp
 Add Apiosk:
 
 ```bash
-claude mcp add apiosk -- npx -y apiosk-mcp-server
+claude mcp add apiosk -- npx -y @apiosk/mcp
 ```
 
 Check the saved server:
@@ -89,7 +122,7 @@ claude mcp list
 Add Apiosk:
 
 ```bash
-codex mcp add apiosk -- npx -y apiosk-mcp-server
+codex mcp add apiosk -- npx -y @apiosk/mcp
 ```
 
 Check the saved server:
@@ -177,5 +210,5 @@ Common environment variables:
 ## Related links
 
 - Hosted MCP endpoint: [https://mcp.apiosk.com/mcp](https://mcp.apiosk.com/mcp)
-- npm package: [https://www.npmjs.com/package/apiosk-mcp-server](https://www.npmjs.com/package/apiosk-mcp-server)
+- npm package: [https://www.npmjs.com/package/@apiosk/mcp](https://www.npmjs.com/package/@apiosk/mcp) (the published binary is `apiosk-mcp-server`)
 - Consumer guide: [/guides/consumers](/guides/consumers)

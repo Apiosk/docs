@@ -11,7 +11,9 @@ Not for the raw gateway payment flow. Paid routes use `HTTP 402` plus `x-payment
 
 ## When should I use managed wallet mode?
 
-Use it when you want an easier operator flow for repeated paid calls and do not want to build your own raw x402 signing loop for each request.
+Use it when you already have a managed agent wallet and want an easier operator flow for repeated paid calls, without building your own raw x402 signing loop for each request.
+
+Note that creating a **new** managed (custodial) wallet is currently unavailable: the legacy dashboard service that derived and encrypted wallet keys has been retired, and creation returns `custodial_wallet_creation_unavailable`. Existing managed wallets keep working and connect tokens can still be minted for them. If you do not have one, use raw x402 mode or create a local wallet with the stdio MCP package.
 
 ## When should I use raw x402 mode?
 
@@ -51,7 +53,7 @@ On the USDC rail, Apiosk takes a flat **2%** platform fee at the moment of settl
 
 ## Which networks can buyers pay on?
 
-Base and Solana are live; Polygon and Arbitrum are coming soon. A paid route's `402` lists one `accepts` entry per network the API is configured for, all at the same USDC price, and always includes a Base entry as fallback, so a `402` is always payable. See [Multi-chain Settlement](/guides/multichain).
+Buyers can pay on Base, Polygon, or Arbitrum. Base is always offered; Polygon and Arbitrum are enabled only when the configured facilitator advertises support for them, otherwise the gateway falls back to Base-only. Solana is not a settlement network. A paid route's `402` lists one `accepts` entry per network the API is configured for, all at the same USDC price, and always includes a Base entry as fallback, so a `402` is always payable. See [Multi-chain Settlement](/guides/multichain).
 
 ## What does Apiosk charge on SEPA?
 
@@ -59,7 +61,7 @@ Nothing per transaction. SEPA Direct Debit is priced as a monthly subscription t
 
 ## Can I force a specific payment rail?
 
-Yes. Send `X-Payment-Rail: x402`, `X-Payment-Rail: sepa`, or `X-Payment-Rail: credits` on the request. If you omit the header, the gateway picks the cheapest viable rail for the buyer and falls back automatically if the preferred rail is unavailable.
+Yes. Send `X-Apiosk-Rail: x402`, `X-Apiosk-Rail: sepa`, or `X-Apiosk-Rail: credits` on the request. If you omit the header, the gateway picks the cheapest viable rail for the buyer and falls back automatically if the preferred rail is unavailable.
 
 ## Where should I put private implementation details?
 

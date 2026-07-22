@@ -1,0 +1,94 @@
+---
+title: "Apiosk Pay (Hosted Checkout)"
+description: "A marketplace hands off a payment to pay.apiosk.com and gets the buyer back with a result. The buyer's own wallet pays the seller, the marketplace, and Apiosk in one transaction."
+---
+
+# Apiosk Pay (Hosted Checkout)
+
+Apiosk Pay is the **hosted checkout** at `https://pay.apiosk.com`. A marketplace
+creates a checkout server-to-server, redirects the buyer to the URL it gets
+back, and reads the result. The marketplace never renders a wallet UI, never
+sees a signature, and never learns a settlement address. Same shape as iDEAL:
+redirect out, pay, come back.
+
+This is a different money path from the Connect skill charge in
+[/guides/connect-marketplace](/guides/connect-marketplace). Both sit under
+Apiosk Connect and both use your marketplace keys, but they settle differently:
+
+| | Hosted checkout | Skill charge |
+| --- | --- | --- |
+| Who pays | a human buyer, in a browser | an agent, over x402 |
+| Endpoint | `POST /v1/checkout` on `pay.apiosk.com` | `charge_url` on the gateway |
+| Settlement | one transaction, three recipients, on-chain | once to the platform wallet |
+| Split happens | at payment time, atomically | later, at payout time |
+| Contract | `ApioskPaySplitter` | none |
+
+## The money moves payer to payee, nothing custodies it
+
+A checkout is paid by **the buyer's own wallet, in one transaction**, to three
+recipients at once: the seller, the marketplace owner, and Apiosk. It goes
+through `ApioskPaySplitter`, a small ownerless contract that performs the
+transfers and holds no balance at any point. There is no platform wallet in the
+middle, no facilitator, and nothing to pay out afterwards. The split has already
+happened when the transaction confirms.
+
+The alternative was two or three separate transfers, and it was rejected for one
+reason: a buyer who confirms the first and abandons the second has paid the
+seller on-chain while the marketplace has not, with no way to undo it. The
+splitter makes that state unrepresentable. Every leg lands, or the transaction
+reverts.
+
+## The split is per marketplace, and it is not yours to send
+
+`marketplace_fee_bps` and `apiosk_fee_bps` are read from your marketplace row
+behind the API key, never from the request body. A marketplace on 30% means 70%
+to the seller, after Apiosk's 2%. Change the number in the portal and the next
+checkout uses it, with no redeploy, and nothing in the contract knows what a fee
+is.
+
+Each fee leg is floored and the remainder goes to the seller, so the three legs
+always sum to the gross exactly. A leg that computes to zero is dropped rather
+than encoded.
+
+| Party | Share |
+| --- | --- |
+| Seller | gross, minus the marketplace fee, minus 2% |
+| Marketplace | its configured fee |
+| Apiosk | 2% platform fee |
+
+## What the caller may not set
+
+The body describes the **sale**. The key decides **who is selling**. Four things
+are therefore resolved server-side and refused in the body:
+
+- **Marketplace name and logo.** A caller that could name its own marketplace
+  could render someone else's brand over its own checkout.
+- **Fee basis points.** A caller that could set these could take a cut nobody
+  agreed to.
+- **Any wallet address.** The seller's payout address is resolved through
+  Connect, where it was verified by a Sign-In-With-Ethereum signature. An
+  address in a request body would mean a compromised integration could point a
+  seller's takings anywhere. See [/pay/sellers](/pay/sellers).
+- **`amount_minor`.** You send dollars. The service converts to USDC's 6 decimal
+  minor units, so no integrator has to know the token's precision.
+
+Everything resolved this way, all three recipients and all three amounts, is
+**frozen onto the checkout at creation**. A seller who relinks their wallet, or
+a marketplace that changes its cut, must not alter a price a buyer has already
+been shown, and certainly not a transaction a wallet has already signed.
+
+<Warning>
+No response from this service ever contains a settlement address. Not the
+seller's, not the marketplace's, not Apiosk's. A buyer who could read a payout
+address could be induced to send funds to it directly, outside the checkout,
+with no record and no split.
+</Warning>
+
+## Related links
+
+- Quickstart: [/pay/quickstart](/pay/quickstart)
+- Naming a seller: [/pay/sellers](/pay/sellers)
+- API reference: [/pay/checkout-api](/pay/checkout-api)
+- Payment lifecycle: [/pay/lifecycle](/pay/lifecycle)
+- Webhooks: [/pay/webhooks](/pay/webhooks)
+- Connect (marketplace): [/guides/connect-marketplace](/guides/connect-marketplace)

@@ -1,0 +1,107 @@
+---
+title: "Pay quickstart"
+description: "One authenticated call creates a checkout and returns a URL to redirect the buyer to. Read the payment back before you release the goods."
+---
+
+# Pay quickstart
+
+One call, one payment URL. Authenticate with your marketplace **secret key**
+(`apk_live_...`, minted once in the provider portal), describe the sale, and get
+back a URL to redirect the buyer to.
+
+## 1. Create the checkout
+
+```bash
+curl -X POST https://pay.apiosk.com/v1/checkout \
+  -H "Authorization: Bearer apk_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": "12.50",
+    "seller_id": "northwind-research",
+    "product_name": "Quick company lookup",
+    "description": "One company, enriched, in a few seconds.",
+    "return_url": "https://your-shop.example.com/orders/1"
+  }'
+```
+
+Three fields are required: `amount`, `seller_id`, `product_name`. `amount` is
+**dollars as a string**. `seller_id` is an ID, never a name, see
+[/pay/sellers](/pay/sellers).
+
+```json
+{
+  "id": "3f2a1b4c-...",
+  "url": "https://pay.apiosk.com/3f2a1b4c-...",
+  "status": "pending",
+  "amount": "12.50",
+  "amount_minor": 12500000,
+  "currency": "USDC",
+  "expires_at": "2026-07-22T20:14:00.000Z",
+  "marketplace": { "id": "...", "name": "Acme Data Exchange" },
+  "seller": { "id": "6f1c8e2a-...", "name": "Northwind Research" },
+  "split": {
+    "seller_amount": "11.75",
+    "marketplace_fee": "0.50",
+    "apiosk_fee": "0.25",
+    "seller_amount_minor": 11750000,
+    "marketplace_fee_minor": 500000,
+    "apiosk_fee_minor": 250000
+  }
+}
+```
+
+Dollars go in, and both `amount` and `amount_minor` come back: the string for
+anything you show a human, the integer for reconciling against the webhook,
+which speaks minor units.
+
+## 2. Redirect the buyer
+
+Send the buyer to `url`. The hosted page handles wallet connection, the
+signature, and the transaction. The link is payable for **20 minutes**; after
+that the buyer is told to start again from your store.
+
+If you passed a `return_url`, the buyer lands back there when the payment
+settles. If you did not, they stay on the hosted completion screen, so a first
+integration works with a single curl and no callback route.
+
+## 3. Read the result before you ship
+
+```bash
+curl https://pay.apiosk.com/v1/payments/3f2a1b4c-... \
+  -H "Authorization: Bearer apk_live_..."
+```
+
+```json
+{ "id": "3f2a1b4c-...", "status": "paid", "amount_minor": 12500000,
+  "currency": "USDC", "order_ref": "order-1",
+  "buyer_address": "0x...", "tx_hash": "0x...", "expires_at": "...", "last_error": null }
+```
+
+<Warning>
+The webhook is a nudge, never the authority. It can be late, lost, replayed or
+forged. Read the payment back with this endpoint before releasing goods.
+</Warning>
+
+## Testing without a browser
+
+`GET /health` reports whether the deployment is configured to take checkouts at
+all, without revealing any address:
+
+```bash
+curl https://pay.apiosk.com/health
+```
+
+```json
+{ "ok": true, "service": "apiosk-pay", "network": "base",
+  "store": true, "payment_links": true, "checkout": true, "splitter": true }
+```
+
+A `501 not_configured` from `POST /v1/checkout` means one of those flags is
+false, most often a missing settlement contract or platform fee wallet.
+
+## Related links
+
+- Overview: [/pay/overview](/pay/overview)
+- Naming a seller: [/pay/sellers](/pay/sellers)
+- Full API reference: [/pay/checkout-api](/pay/checkout-api)
+- Lifecycle and statuses: [/pay/lifecycle](/pay/lifecycle)

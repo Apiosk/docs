@@ -7,6 +7,25 @@ description: "Public-facing record of notable Apiosk gateway changes."
 
 A summary of recent product changes that affect public integrators, consumers building against the gateway, publishers managing listings, and operators wiring agent wallets. Internal infrastructure work is intentionally omitted.
 
+## 2026-07, Apiosk Pay: hosted checkout for human buyers
+
+`https://pay.apiosk.com` sells a marketplace's own products to people in browsers, alongside the agent-facing x402 rail. A marketplace creates a checkout with its `apk_live_` key, redirects the buyer, and reads the result back.
+
+- the buyer's own wallet pays the seller, the marketplace and Apiosk in **one transaction**, through an ownerless splitter contract; nothing is custodied and there is no payout queue
+- the seller is named by **ID**, either your own `external_seller_id` or the Connect merchant UUID, and their payout wallet is resolved through Connect rather than sent in the body
+- prices are dollar strings (`"12.50"`); the 6-decimal USDC conversion happens server-side
+- signed `payment.*` webhooks carry a **timestamped** HMAC, unlike Connect's `merchant.activated`
+- see [/pay/overview](/pay/overview)
+
+## 2026-07, Solana settlement removed
+
+Solana is no longer a settlement network. The supported set is **Base, Polygon and Arbitrum**, and non-Base networks appear only when the facilitator advertises support for them.
+
+- `402` responses no longer carry a `solana` entry in `accepts[]`
+- publishers attach up to **3** payout wallets per API, one per supported network; existing Solana payout wallets were removed
+- this supersedes the multi-chain entry below, which announced Solana as live
+- see [/guides/multichain](/guides/multichain)
+
 ## 2026-07, Publisher MCP: publish paid routes from a coding agent
 
 The hosted Apiosk MCP server (`https://mcp.apiosk.com/mcp`) now publishes as well as consumes. A coding agent, Claude Code, Cursor, Codex, authenticates with a provider `sk_live_` key (`Authorization: Bearer sk_live_…`) and can turn any HTTPS endpoint into a paid x402 route in one tool call.
@@ -56,11 +75,11 @@ The on-chain platform fee on the USDC rail dropped from **10% to 2%**. Publisher
 
 ## 2026-05, Force-rail header
 
-The gateway accepts an `X-Payment-Rail` header on paid requests to pin the settlement rail explicitly:
+The gateway accepts an `X-Apiosk-Rail` header on paid requests to pin the settlement rail explicitly:
 
-- `X-Payment-Rail: x402`: settle on-chain in USDC on Base
-- `X-Payment-Rail: sepa`: settle via SEPA Direct Debit through Mollie
-- `X-Payment-Rail: credits`: debit pre-paid Apiosk credits
+- `X-Apiosk-Rail: x402`: settle on-chain in USDC on Base
+- `X-Apiosk-Rail: sepa`: settle via SEPA Direct Debit through Mollie
+- `X-Apiosk-Rail: credits`: debit pre-paid Apiosk credits
 
 Without the header the gateway selects the cheapest viable rail for the buyer and falls back automatically if the preferred rail is unavailable (for example, an underfunded managed wallet falls back to SEPA or credits when both are configured).
 

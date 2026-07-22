@@ -1,0 +1,152 @@
+---
+title: "Checkout API reference"
+description: "Every endpoint on pay.apiosk.com: the two you call with your secret key, and the payer-facing ones the hosted page uses."
+---
+
+# Checkout API reference
+
+Base URL `https://pay.apiosk.com`. Currency is **USDC only**, 6 decimals. Every
+response carries `Cache-Control: no-store`.
+
+## Authentication
+
+Two endpoints take your marketplace **secret key**, as either header:
+
+```text
+Authorization: Bearer apk_live_...
+X-Apiosk-Key: apk_live_...
+```
+
+Only the hash of a key is ever compared, and the lookup accepts secret keys that
+have not been revoked. A **publishable** `apk_pub_` key cannot authenticate here.
+There is no shared platform key.
+
+<Note>
+"No key", "unknown key", "revoked key" and "that was a publishable key" all
+return the same `401 unauthorized`. Distinguishing them would tell someone
+probing with a guessed key which half of the guess was right.
+</Note>
+
+The payer-facing endpoints take no key. The checkout ID is the credential: it is
+a UUID, nothing guessable is attached to it, and what it exposes is what the
+buyer is entitled to see.
+
+| Route | Method | Auth |
+| --- | --- | --- |
+| `/v1/checkout` | POST | secret key |
+| `/v1/payments/{id}` | GET | secret key |
+| `/v1/session/{id}` | GET | public |
+| `/v1/payments/{id}/prepare` | POST | public |
+| `/v1/payments/{id}/pay` | POST | public |
+| `/v1/payments/{id}/status` | GET | public |
+| `/v1/payments/{id}/cancel` | POST | public |
+| `/v1/links/{id}/pay` | POST | public |
+| `/v1/links/{id}/status` | GET | public |
+| `/health` | GET | public |
+
+## POST /v1/checkout
+
+Creates a checkout and returns the URL to redirect the buyer to.
+
+| Field | Required | Notes |
+| --- | --- | --- |
+| `amount` | yes | Dollars, as a decimal string: `"12.50"`. Must be greater than zero and carry at most 6 decimals. |
+| `seller_id` | yes | Your `external_seller_id` or the Connect merchant UUID. `merchant_id` is an accepted alias. See [/pay/sellers](/pay/sellers). |
+| `product_name` | yes | The line the buyer reads. |
+| `seller_name` | no | Display override only. Defaults to the seller's Connect display name. |
+| `description` | no | Truncated to 500 characters. |
+| `product_image` | no | A single emoji, truncated to 16 characters. |
+| `return_url` | no | Must be `https`, or `http` on localhost. Omit and the buyer stays on the hosted completion screen. |
+| `cancel_url` | no | Same validation. |
+| `order_ref` | no | Your own reference, truncated to 120 characters, echoed on the webhook. |
+
+`amount` is validated, not rounded. Scientific notation, padding, negatives and
+more than 6 decimals are all rejected rather than coerced, because silently
+rounding somebody's price is worse than refusing it.
+
+There is deliberately no field for a wallet address, a fee, a marketplace name or
+a logo. See [/pay/overview](/pay/overview) for why.
+
+**201 response**
+
+```json
+{
+  "id": "3f2a1b4c-...",
+  "url": "https://pay.apiosk.com/3f2a1b4c-...",
+  "status": "pending",
+  "amount": "12.50",
+  "amount_minor": 12500000,
+  "currency": "USDC",
+  "expires_at": "2026-07-22T20:14:00.000Z",
+  "marketplace": { "id": "...", "name": "Acme Data Exchange" },
+  "seller": { "id": "6f1c8e2a-...", "name": "Northwind Research" },
+  "split": {
+    "seller_amount": "11.75", "marketplace_fee": "0.50", "apiosk_fee": "0.25",
+    "seller_amount_minor": 11750000, "marketplace_fee_minor": 500000, "apiosk_fee_minor": 250000
+  }
+}
+```
+
+**Errors**
+
+| Status | `error` | Cause |
+| --- | --- | --- |
+| 400 | `invalid_amount` | missing, malformed, over-precise, zero or negative `amount` |
+| 400 | `missing_field` | `seller_id` or `product_name` empty |
+| 400 | `invalid_url` | `return_url` or `cancel_url` is not https, or localhost http |
+| 401 | `unauthorized` | no key, unknown key, revoked key, or a publishable key |
+| 403 | `marketplace_suspended` | your marketplace is suspended |
+| 403 | `seller_suspended` | the seller is suspended |
+| 404 | `unknown_seller` | no such seller in **your** marketplace |
+| 409 | `seller_not_payable` | the seller has no active, verified payout wallet |
+| 409 | `marketplace_wallet_missing` | you charge a fee but have no fee wallet configured |
+| 501 | `not_configured` | the deployment has no store, no settlement contract, or no platform fee wallet |
+
+## GET /v1/payments/{id}
+
+The authoritative status, scoped to your own marketplace.
+
+```json
+{ "id": "...", "status": "paid", "amount_minor": 12500000, "currency": "USDC",
+  "order_ref": "order-1", "buyer_address": "0x...", "tx_hash": "0x...",
+  "expires_at": "...", "last_error": null }
+```
+
+No wallets, no URLs, no fee configuration. A payment belonging to another
+marketplace answers **404, not 403**: a 403 would confirm the ID exists and turn
+this endpoint into an enumeration oracle.
+
+## The payer-facing endpoints
+
+You do not normally call these. The hosted page does, and they are documented so
+the flow is auditable.
+
+**`GET /v1/session/{id}`** returns what the checkout page renders: amounts, the
+product line, the marketplace's name and logo, the three split lines, and the
+chain and token to pay in. It never returns a recipient address of any kind.
+A non-UUID answers 404, not 500.
+
+**`POST /v1/payments/{id}/prepare`** takes `{ payer_address, permit_signature?,
+permit_deadline? }` and returns opaque calldata for the splitter. With an
+EIP-2612 permit signature there is one transaction; wallets that cannot sign a
+permit get an `approve` step first, so two.
+
+**`POST /v1/payments/{id}/pay`** takes `{ tx_hash }` and records it. This is a
+claim, not a proof. It is a compare-and-swap: of many concurrent submits exactly
+one wins, and a hash already used to pay another checkout is rejected.
+
+**`GET /v1/payments/{id}/status`** is the poll that actually settles. It reads
+the on-chain receipt and only marks the payment paid if the transaction carries a
+split event for **this** checkout plus a matching transfer for every expected
+leg, each consumed once. An RPC failure leaves the payment pending and is retried,
+it never invents a result.
+
+**`POST /v1/payments/{id}/cancel`** returns `{ ok: true, status: "cancelled" }`,
+or 409 `not_cancellable` once the payment has left `pending` or `failed`.
+
+## Related links
+
+- Quickstart: [/pay/quickstart](/pay/quickstart)
+- Statuses and timing: [/pay/lifecycle](/pay/lifecycle)
+- Webhooks: [/pay/webhooks](/pay/webhooks)
+- Payment links: [/pay/payment-links](/pay/payment-links)

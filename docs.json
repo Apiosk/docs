@@ -82,6 +82,7 @@
               "guides/execute",
               "guides/execute-capabilities",
               "guides/payment-options",
+              "guides/x402-versions",
               "guides/multichain",
               "guides/payment-mode-comparison",
               "guides/errors-and-retries",
@@ -109,6 +110,23 @@
             "group": "Boundaries",
             "pages": [
               "guides/boundaries"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Apiosk Pay",
+        "groups": [
+          {
+            "group": "Hosted checkout",
+            "pages": [
+              "pay/overview",
+              "pay/quickstart",
+              "pay/sellers",
+              "pay/checkout-api",
+              "pay/lifecycle",
+              "pay/webhooks",
+              "pay/payment-links"
             ]
           }
         ]
@@ -154,8 +172,7 @@
             "group": "Metrics",
             "pages": [
               "GET /v1/balance",
-              "GET /v1/usage",
-              "GET /v1/traffic"
+              "GET /v1/usage"
             ]
           }
         ]

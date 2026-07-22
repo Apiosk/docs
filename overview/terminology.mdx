@@ -61,6 +61,6 @@ A route or operation that requires payment before the gateway forwards the reque
 
 A route or operation that does not require payment before forwarding.
 
-## Active vs inactive
+## Pending, active, inactive
 
-Public listing lifecycle states. Active listings are intended to be usable and discoverable. Inactive listings are not ready for normal public use.
+Public listing lifecycle states. `pending` listings have been submitted and are queued for Apiosk review: they are hidden from the catalog and serve no traffic. `active` listings have been approved by an operator and are usable and discoverable. `inactive` listings are not ready for normal public use. A listing cannot be moved to `active` except by an admin approval, the review gate rewrites any other attempt to `pending`. A declined review leaves the listing `inactive`. See [Publisher Lifecycle](/guides/publisher-lifecycle).

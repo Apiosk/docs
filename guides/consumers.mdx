@@ -65,7 +65,7 @@ curl -X POST https://gateway.apiosk.com/graph-nexus-api/execute \
 
 Paid routes return `HTTP 402` with a machine-readable requirement. Your payer signs that requirement and sends the resulting proof in the `x-payment` header.
 
-The `402` lists one `accepts` entry per settlement network the API is configured for (Base and Solana are live), all at the same USDC price and with a Base entry always included. Pick the entry you can pay on and name that network in the payment payload, see [Multi-chain Settlement](/guides/multichain).
+The `402` lists one `accepts` entry per settlement network the API is configured for (Base, Polygon, or Arbitrum), all at the same USDC price and with a Base entry always included. Pick the entry you can pay on and name that network in the payment payload, see [Multi-chain Settlement](/guides/multichain).
 
 The gateway does not require API keys for this flow.
 

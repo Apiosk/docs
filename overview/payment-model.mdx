@@ -14,7 +14,7 @@ The gateway uses a simple public boundary:
 
 ## Public payment facts
 
-- networks: Base and Solana (live), Polygon and Arbitrum (coming soon), see [Multi-chain Settlement](/guides/multichain)
+- networks: Base (always on), plus Polygon and Arbitrum when the facilitator supports them, see [Multi-chain Settlement](/guides/multichain)
 - asset: USDC (on-chain rail) or EUR via SEPA Direct Debit (bank rail)
 - challenge transport: `HTTP 402 Payment Required`: the challenge lists one `accepts` entry per configured network, with Base always included as a fallback
 - proof transport: `x-payment`
@@ -26,7 +26,11 @@ The gateway uses a simple public boundary:
 
 ### Managed wallet mode
 
-Use the dashboard to create or import an agent wallet and generate a connect string or gateway-safe credential bundle. This is the easiest option for operators who want the gateway to handle recurring paid calls within configured limits.
+A managed agent wallet plus a connect string lets the gateway handle recurring paid calls within configured limits, without you building a payer loop.
+
+<Warning>
+Creating a new managed (custodial) wallet is currently unavailable. The legacy dashboard service that derived and encrypted wallet keys has been retired, so wallet creation returns `custodial_wallet_creation_unavailable`. Managed wallets that already exist keep working, and connect tokens can still be minted for them. For a self-serve wallet today, use the local stdio MCP package and create a local wallet, or bring your own payer with raw x402 mode.
+</Warning>
 
 ### Raw x402 mode
 
@@ -36,7 +40,7 @@ Use your own payer and sign the challenge yourself. This is the cleanest option 
 
 For EU operators who need bank-side settlement instead of on-chain USDC, the gateway supports SEPA Direct Debit via Mollie. Paid calls are debited from the buyer's IBAN under a mandate signed once in the buyer portal. SEPA is priced as a monthly subscription, not a per-transaction percentage.
 
-You can pin the rail explicitly per request with the `X-Payment-Rail` header (`x402`, `sepa`, or `credits`). If you omit it, the gateway selects the cheapest viable rail for the call.
+You can pin the rail explicitly per request with the `X-Apiosk-Rail` header (`x402`, `sepa`, or `credits`). If you omit it, the gateway selects the cheapest viable rail for the call.
 
 ### Unpaid routes
 
