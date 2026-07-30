@@ -1,0 +1,245 @@
+---
+title: "Integrations API"
+description: "The two HTTP calls behind SDK mode — register a deployment and poll its commerce config — so any stack can charge agents on its own URL without the npm package."
+---
+
+# Integrations API
+
+The [SDK middleware](/guides/sdk-middleware) is a convenience. The contract
+underneath it is small enough to implement directly in any language: **register
+once at boot**, **poll config on a timer**, and enforce what it says.
+
+All routes live under the `provider-sdk` endpoint and authenticate with a
+provider `sk_live_…` key (**Settings → SDK & API keys**), sent either way:
+
+```text
+Authorization: Bearer sk_live_...
+x-apiosk-api-key: sk_live_...
+```
+
+<Note>
+The exact endpoint URL is shown in the portal under **Connect → Integrations →
+New integration → Any language**, already filled in for your deployment. It is
+also the default `@apiosk/sdk` uses, overridable with `APIOSK_API_URL`. The
+examples below call it `$APIOSK_SDK_URL`.
+</Note>
+
+| Route | Purpose |
+| --- | --- |
+| `POST /integrations/register` | Boot handshake: who this deployment is and what it serves. |
+| `GET /integrations/config` | The commerce config to enforce. ETagged. |
+| `POST /integrations/heartbeat` | Liveness ping, for a long config cache. |
+| `GET /integrations` | The account's deployments, for CLI/SDK introspection. |
+
+Both `register` and `config` stamp `last_seen_at`, which is the only thing the
+portal's connection light is derived from. A server that dies cannot tell us it
+died, so silence has to be the signal — there is no stored "connected" boolean to
+go stale.
+
+## `POST /integrations/register`
+
+Once at boot. Idempotent on `(owner, baseUrl)`, so a restart or a redeploy
+updates the same record rather than accumulating deployments.
+
+```bash
+curl -X POST "$APIOSK_SDK_URL/integrations/register" \
+  -H "x-apiosk-api-key: $APIOSK_API_KEY" \
+  -H "content-type: application/json" \
+  -d '{
+        "baseUrl": "https://api.yourcompany.com",
+        "label": "Production",
+        "sdk": { "name": "custom", "version": "1.0.0" },
+        "runtime": "python-3.12",
+        "routes": [
+          { "method": "POST", "path": "/v1/todos", "description": "Create a todo" }
+        ]
+      }'
+```
+
+| Field | Required | Notes |
+| --- | --- | --- |
+| `baseUrl` | yes | Scheme + host; any path is stripped. `http://` only on loopback. |
+| `label` | no | Display name in the dashboard. Defaults to the host. |
+| `apiId` | no | Adopt a specific listing instead of matching or creating one. |
+| `sdk` | no | `{ name, version }`, shown in the dashboard and the connection test. |
+| `runtime` | no | Free-form runtime label, e.g. `node-22`. |
+| `routes` | no | Up to 500 `{ method, path, description? }` entries. |
+
+Returns `{ integration, routesAdded, config }` — `201` the first time, `200` on a
+re-register — so a server that registers at boot already holds its config
+without a second round trip.
+
+**Reported routes are added as unpriced endpoints** (`price 0`,
+`payment_required false`), and routes that already exist are left strictly alone.
+Discovering a route must never start charging for it, and must never reprice one
+you already configured. Turning a route into a paywall is a decision made in the
+dashboard.
+
+**Linking is conservative** for the same reason. An explicit `apiId` wins.
+Otherwise a silent match is only made against a listing already in SDK mode — a
+gateway-mode listing is never adopted, because that would change where its
+traffic is served without anyone asking. Anything else creates a fresh draft with
+no payout wallet, which you then price, point at a wallet, and publish through
+the normal [review flow](/guides/publisher-lifecycle).
+
+## `GET /integrations/config`
+
+On a timer. Identify the deployment with the `x-apiosk-base-url` header or
+`?baseUrl=`; an account with exactly one integration may omit it. Two without a
+selector is a `400`, not a guess — serving one server another server's prices
+would be worse than an error.
+
+```bash
+curl "$APIOSK_SDK_URL/integrations/config" \
+  -H "x-apiosk-api-key: $APIOSK_API_KEY" \
+  -H "x-apiosk-base-url: https://api.yourcompany.com" \
+  -H 'If-None-Match: W/"12"'
+```
+
+Send `If-None-Match` and you get a `304` until something actually changes, so
+polling every few seconds costs nothing and a price edited in the dashboard is
+picked up within one interval.
+
+```jsonc
+{
+  "version": 12,                              // == the ETag
+  "integrationId": "…",
+  "baseUrl": "https://api.yourcompany.com",
+  "payoutReady": true,                        // false = do not charge
+  "listing": {
+    "id": "…",
+    "slug": "your-api",
+    "name": "Your API",
+    "status": "active",
+    "integrationMode": "sdk"
+  },
+  "payment": {
+    "payTo": "0x…",
+    "network": "base",
+    "asset": "USDC",
+    "scheme": "exact",
+    "facilitator": "https://gateway.apiosk.com/pay",
+    "verifyUrl": "https://gateway.apiosk.com/pay/verify"
+  },
+  "authFallback": "passthrough",              // or "charge"
+  "routes": [
+    {
+      "endpointId": "…",
+      "method": "POST",
+      "path": "/v1/todos",
+      "x402": true,
+      "price": "0.020000",
+      "currency": "USD",
+      "description": "Create a todo"
+    }
+  ],
+  "unpriced": [{ "method": "DELETE", "path": "/v1/todos/:id" }]
+}
+```
+
+`version` is the ETag. It is bumped on every write to a linked endpoint row and
+on the listing's payout wallet, status, slug or integration mode — that is the
+whole "set a price in the dashboard, the server honours it seconds later" loop.
+
+### Rules your implementation must enforce
+
+- `x402: false` → serve the request **free**. A route is chargeable only when the
+  provider both enabled payment **and** set a price above zero.
+- `payoutReady: false` → **never charge**. A `402` that settles to the burn
+  address takes money and delivers nothing.
+- `authFallback: "passthrough"` → a request your own auth recognises reaches the
+  handler untouched. This is the promise of SDK mode; breaking it breaks your
+  existing customers.
+- `unpriced` → serve free, and log it. The dashboard shows the same list so a
+  newly shipped route can be priced.
+- No config at all (never polled, or Apiosk unreachable) → serve free. An outage
+  on our side must not become an outage on yours.
+
+`price` is a fixed-point decimal string on purpose. Convert to atomic units with
+string arithmetic: `Number(price) * 10 ** 6` silently produces values like
+`20000.000000000004`, and a fractional atomic amount is a challenge no
+facilitator will settle.
+
+### Building the challenge
+
+The config carries the asset as a **symbol**. An x402 v1 `PaymentRequirements`
+needs the ERC-20 contract address, the amount in atomic units, and an EIP-712
+domain whose `name` matches the token's on-chain `name()`. For SDK mode that set
+is fixed:
+
+| | |
+| --- | --- |
+| Network | `base` (CAIP-2 `eip155:8453`) |
+| Asset | USDC, `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`, 6 decimals |
+| EIP-712 `name` | `USD Coin` — **not** `USDC` |
+| Scheme | `exact` |
+
+Emit the challenge dual-stack: the JSON **body** in x402 v1 (bare `network`,
+`maxAmountRequired`), and the **`payment-required` header** in v2 (CAIP-2
+`network`, `amount`) as base64 JSON. Accept proofs from either version
+(`x-payment` for v1, `payment-signature` for v2). See
+[x402 Versions](/guides/x402-versions).
+
+<Warning>
+Getting the EIP-712 `name` wrong produces signatures the facilitator rejects with
+no useful error: the payment simply never verifies. Putting a CAIP-2 id in the
+v1 **body** is the mirror image — every released payer SDK throws while parsing
+`accepts[]`, and the route becomes unpayable.
+</Warning>
+
+## `POST /integrations/heartbeat`
+
+Optional. For an implementation that caches config for long stretches and would
+otherwise look dead in the dashboard between polls. Same selector as `config`;
+returns `{ ok: true, configVersion }`.
+
+## `GET /integrations`
+
+The account's deployments — base URL, label, SDK name/version, status,
+`configVersion`, `lastSeenAt` and reported routes — for CLI and SDK
+introspection.
+
+## `GET {baseUrl}/.well-known/apiosk`
+
+The one call that goes the other way: Apiosk → your host. Everything above is
+your server phoning home, which means a deployment that never boots, never gets
+its key, or answers on a different origin is indistinguishable from one that was
+never created. This is what the portal's **Test connection** button calls, so you
+can find out which.
+
+```jsonc
+{
+  "apiosk": true,
+  "baseUrl": "https://api.yourcompany.com",   // what YOUR SERVER thinks it is
+  "sdk": { "name": "custom", "version": "1.0.0" },
+  "configVersion": 12
+}
+```
+
+Public and non-secret by design — it names the middleware, not the account, and
+carries no key, no route table and no prices. `baseUrl` is the load-bearing
+field: when it disagrees with the registered origin you have two identities for
+one server, and the portal says so rather than showing a green light on a row
+nothing will ever poll.
+
+Serving it is optional. A deployment that does not gets a warning, not a failure
+— the handshake is still the authority on whether an integration works.
+
+## Errors
+
+| Status | Meaning |
+| --- | --- |
+| `400` | Unusable `baseUrl`, or two integrations and no selector. |
+| `401` | Invalid or revoked key. Every route serves free until this is fixed. |
+| `404` | No integration registered for that `baseUrl`; call `register` first. |
+| `409` | The integration is disabled in the dashboard, or not linked to a listing. |
+
+A `401` is the quiet failure worth alerting on: the server is up, the code is
+right, and every config poll fails — so every route serves free forever.
+
+## Related links
+
+- SDK mode: [/guides/sdk-mode](/guides/sdk-mode)
+- SDK middleware: [/guides/sdk-middleware](/guides/sdk-middleware)
+- Provider SDK keys: [/guides/provider-sdk](/guides/provider-sdk)
+- Integrations in the portal: [/dashboard/integrations](/dashboard/integrations)

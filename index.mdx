@@ -35,6 +35,22 @@ wire it up.
 If you sell access instead of buying it, gating a skill, download, or service
 behind payment, see [Payment Checks](/guides/payment-check).
 
+## Ways to get paid
+
+Three modes, and the difference is where the traffic goes.
+
+| Mode | Your API is served from | `402` issued by | Guide |
+| --- | --- | --- | --- |
+| **Gateway** | `gateway.apiosk.com/{slug}/…`, proxied to your origin | Apiosk | [/guides/publishers](/guides/publishers) |
+| **SDK** | **your own URL, unchanged** | the Apiosk middleware, on your host | [/guides/sdk-mode](/guides/sdk-mode) |
+| **Federated** | your own URL | your own code, from your `/.well-known/x402` | [/guides/sdk-mode](/guides/sdk-mode) |
+
+SDK mode is the middle path: you keep your traffic and your existing customers,
+Apiosk keeps discovery, pricing, verification, analytics and payouts. Install the
+middleware in front of the routes you already run
+([/guides/sdk-middleware](/guides/sdk-middleware)), or implement the same two
+HTTP calls yourself ([/guides/integrations-api](/guides/integrations-api)).
+
 If your buyer is a **person with a browser** rather than an agent, use the hosted
 checkout at `pay.apiosk.com`: you create a checkout server-to-server, redirect the
 buyer, and their own wallet pays your seller, you, and Apiosk in one transaction.

@@ -59,6 +59,7 @@
               "dashboard/overview",
               "dashboard/workflow",
               "dashboard/publishing",
+              "dashboard/integrations",
               "dashboard/agent-wallets",
               "dashboard/manual-payments",
               "dashboard/payments-and-usage",
@@ -93,6 +94,9 @@
             "group": "Publishers",
             "pages": [
               "guides/publishers",
+              "guides/sdk-mode",
+              "guides/sdk-middleware",
+              "guides/integrations-api",
               "guides/provider-sdk",
               "guides/publisher-mcp",
               "guides/payment-check",

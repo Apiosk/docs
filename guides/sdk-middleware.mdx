@@ -1,0 +1,243 @@
+---
+title: "SDK Middleware"
+description: "Install @apiosk/sdk in front of your own Express, Fastify, Next.js or Hono routes to charge agents for an API you host yourself."
+---
+
+# SDK Middleware
+
+The sell half of `@apiosk/sdk` is a middleware you mount in front of routes you
+already run. It registers your deployment with Apiosk at boot, polls the prices
+you set in the dashboard, issues the `402`, verifies the payment, and then calls
+your handler. See [SDK Mode](/guides/sdk-mode) for what it is and what it will
+and will not charge for.
+
+## Install
+
+```bash
+npm i @apiosk/sdk@next
+```
+
+<Warning>
+The `@next` tag is deliberate and must stay until SDK-mode settlement ships. The
+sell side lives in **0.2.0**, published under `next`; a bare
+`npm i @apiosk/sdk` resolves to 0.1.0, which is the buyer client alone and has no
+`/express` subpath at all.
+</Warning>
+
+Requires Node 20 or newer. The sell side carries no dependencies of its own: if
+you only import `@apiosk/sdk/express`, no crypto library is loaded at runtime.
+
+Create the integration first at **Connect → Integrations → New integration** in
+the portal. The wizard registers your URL, generates the `sk_live_…` key, and
+hands you these snippets with your own values already filled in. See
+[Integrations](/dashboard/integrations).
+
+Set the key as an environment variable on the deployment, never in source:
+
+```bash
+APIOSK_API_KEY=sk_live_...
+```
+
+## Express
+
+```js
+import express from "express"
+import { apiosk } from "@apiosk/sdk/express"
+
+const app = express()
+
+app.use(
+  apiosk({
+    apiKey: process.env.APIOSK_API_KEY,
+    baseUrl: "https://api.yourcompany.com",
+
+    // Your existing customers never see a 402: if your own auth recognises the
+    // request, the middleware calls next() and the handler runs as it does today.
+    isExistingCustomer: (req) => Boolean(req.header("x-api-key")),
+  }),
+)
+
+// Unchanged. Same route, same handler — only the paywall in front of it is new.
+app.post("/v1/todos", createTodo)
+```
+
+Mount it with `app.use` **before** the routes it should meter. It calls `next()`
+for everything it does not charge for, so handlers behind it are unaffected.
+Route discovery reads the router table on the first request, by which time your
+routes are all mounted.
+
+## Fastify
+
+```js
+import Fastify from "fastify"
+import { apioskPlugin } from "@apiosk/sdk/fastify"
+
+const app = Fastify()
+
+await app.register(apioskPlugin, {
+  apiKey: process.env.APIOSK_API_KEY,
+  baseUrl: "https://api.yourcompany.com",
+  isExistingCustomer: (req) => Boolean(req.headers["x-api-key"]),
+})
+
+app.post("/v1/todos", createTodo)
+```
+
+## Next.js
+
+```ts
+// middleware.ts
+import { apioskMiddleware } from "@apiosk/sdk/next"
+
+export const middleware = apioskMiddleware({
+  apiKey: process.env.APIOSK_API_KEY,
+  baseUrl: "https://api.yourcompany.com",
+  isExistingCustomer: (req) => Boolean(req.headers.get("x-api-key")),
+
+  // Next has no router table to read, so list what you want priced. Routes you
+  // leave out still work — they just serve free until you add them.
+  routes: [{ method: "POST", path: "/api/todos" }],
+})
+
+// Only your API routes are metered; pages are left alone.
+export const config = { matcher: "/api/:path*" }
+```
+
+## Hono
+
+```ts
+import { Hono } from "hono"
+import { apiosk } from "@apiosk/sdk/hono"
+
+const app = new Hono()
+
+app.use(
+  "*",
+  apiosk({
+    apiKey: process.env.APIOSK_API_KEY,
+    baseUrl: "https://api.yourcompany.com",
+    isExistingCustomer: (c) => Boolean(c.req.header("x-api-key")),
+    app, // optional, gives accurate route discovery
+  }),
+)
+
+app.post("/v1/todos", createTodo)
+```
+
+## Options
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `apiKey` | yes | `sk_live_…` from **Settings → SDK & API keys**. |
+| `baseUrl` | yes | This deployment's public origin. Must match what you registered, **exactly** — it is the identity of the integration. |
+| `isExistingCustomer` | no | Recognise one of your own customers. Default: nobody, so every caller is treated as an agent. |
+| `routes` | no | Routes to report to the dashboard. Discovered automatically on Express, Fastify and Hono; **required on Next.js**. |
+| `apiUrl` | no | Override the Apiosk endpoint (staging, self-hosted). Also settable with `APIOSK_API_URL`. |
+| `pollIntervalMs` | no | Config poll interval. Minimum 5s, default 30s. |
+| `runtime` | no | Runtime label reported to the dashboard, e.g. `node-22`. Detected by default. |
+| `logger` | no | `(level, message, meta) => void`. Defaults to `console`. |
+| `app` | no | Hono only: pass your app for accurate route discovery. |
+
+<Note>
+`baseUrl` is canonicalised to scheme + host (+ port), lowercased, no path and no
+trailing slash. `https://api.me.com`, `https://API.me.com/` and
+`https://api.me.com/v1` are the same integration. Plain `http://` is accepted
+only on loopback, which is what `npm run dev` looks like.
+</Note>
+
+## The decision on the request
+
+Every adapter attaches the decision it made, so your handler can log or branch on
+it:
+
+| Framework | Where |
+| --- | --- |
+| Express, Fastify | `req.apiosk` |
+| Hono | `c.get("apiosk")` |
+| Next.js | header `x-apiosk-paid: 1` on a paid request |
+
+```js
+app.post("/v1/todos", async (req, res) => {
+  // "passthrough" | "free" | "paid", with a machine-readable reason such as
+  // "existing_customer", "route_not_priced" or "payment_verified".
+  console.log(req.apiosk.action, req.apiosk.reason)
+  res.json(await createTodo(req.body))
+})
+```
+
+A settled call also carries the receipt back to the caller in
+`x-payment-response`.
+
+## `/.well-known/apiosk`
+
+The middleware serves a small public document at `{baseUrl}/.well-known/apiosk`,
+which is what the dashboard's **Test connection** button reads:
+
+```json
+{
+  "apiosk": true,
+  "baseUrl": "https://api.yourcompany.com",
+  "sdk": { "name": "@apiosk/sdk", "version": "0.2.0" },
+  "configVersion": 12
+}
+```
+
+It names the middleware and the origin it believes it serves — never your API
+key, your account, your routes or your prices. Serving it is optional; a
+middleware that does not gets a warning in the connection test, not a failure.
+
+## Any other framework
+
+The adapters are thin, and the decision core is exported:
+
+```js
+import { ApioskProvider, decide } from "@apiosk/sdk/server"
+
+const provider = new ApioskProvider({ apiKey, baseUrl })
+await provider.start(routes)
+
+const decision = await decide({
+  client: provider,
+  method: request.method,
+  path: new URL(request.url).pathname,
+  isExistingCustomer: Boolean(request.headers.get("x-api-key")),
+  getHeader: (name) => request.headers.get(name),
+})
+
+if (decision.action === "challenge") {
+  return new Response(JSON.stringify(decision.challenge.body), {
+    status: 402,
+    headers: decision.challenge.headers,
+  })
+}
+// "passthrough" | "free" | "paid" -> run your handler
+```
+
+`ApioskProvider` exposes `register()`, `pollConfig()`, `start()`, `stop()`,
+`heartbeat()` and `verifyPayment()`, plus the last good `config`. Outside
+JavaScript, implement the same contract directly:
+[Integrations API](/guides/integrations-api).
+
+## Buy and sell in one package
+
+`@apiosk/sdk` ships both halves, because the same team that sells one API usually
+calls three others. The names keep them apart:
+
+| | | |
+| --- | --- | --- |
+| **Buy** | `ApioskClient` | Call APIs through the gateway and pay their `402`s. [JavaScript SDK](/guides/sdk) |
+| **Sell** | `ApioskProvider` and the adapters | Charge for an API **you** host, on **your** URL. |
+
+Subpath exports keep them apart at runtime: importing `@apiosk/sdk/express` pulls
+in nothing from the buy side, so your production API never loads `viem` to serve
+a `402`.
+
+Upgrading from 0.1.0 breaks nothing — `ApioskClient` is unchanged, and 0.2.0 only
+adds the sell side under new subpath exports.
+
+## Related links
+
+- SDK mode: [/guides/sdk-mode](/guides/sdk-mode)
+- Integrations API: [/guides/integrations-api](/guides/integrations-api)
+- Integrations in the portal: [/dashboard/integrations](/dashboard/integrations)
+- Buy-side client: [/guides/sdk](/guides/sdk)

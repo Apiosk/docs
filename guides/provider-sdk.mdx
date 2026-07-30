@@ -43,8 +43,25 @@ call it settles over the provider's own balance on the same rail selection as a
 connect token. That makes one key enough for a server that both publishes and
 consumes APIs.
 
+## The key an SDK-mode deployment uses
+
+The same `sk_live_` key authenticates the
+[Integrations API](/guides/integrations-api) — the boot handshake and config poll
+a server running the Apiosk middleware makes. Give each deployment its own key
+and label it accordingly: the portal's connection test names the key a server
+authenticated with, so a revoked key shows up as the cause rather than as a
+mystery outage.
+
+<Warning>
+Revoking a key an SDK-mode deployment uses does not stop that server — it makes
+every route serve **free**. The middleware fails toward free by design, so its
+config poll starts failing with `401` while the API keeps answering. Rotate by
+deploying the new key first.
+</Warning>
+
 ## Related links
 
 - Publishers: [/guides/publishers](/guides/publishers)
 - Publisher lifecycle: [/guides/publisher-lifecycle](/guides/publisher-lifecycle)
 - SDK (consumer client): [/guides/sdk](/guides/sdk)
+- SDK mode: [/guides/sdk-mode](/guides/sdk-mode)

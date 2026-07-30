@@ -7,6 +7,36 @@ description: "Public-facing record of notable Apiosk gateway changes."
 
 A summary of recent product changes that affect public integrators, consumers building against the gateway, publishers managing listings, and operators wiring agent wallets. Internal infrastructure work is intentionally omitted.
 
+## 2026-07, SDK mode: get paid on your own URL
+
+A third way to serve a listing, next to gateway mode and federated mode. The
+Apiosk middleware sits in front of handlers you already run: your existing
+customers' API keys fall through untouched, everyone else gets a `402`, and after
+verification **the same handler** runs. `api.yourcompany.com/v1/todos` stays
+`api.yourcompany.com/v1/todos`.
+
+- `@apiosk/sdk` 0.2.0 (published under the `next` tag) adds the sell half:
+  `@apiosk/sdk/express`, `/fastify`, `/next` and `/hono`, plus the exported
+  decision core for any other framework
+- the middleware registers at boot, polls the prices you set in the dashboard
+  with an ETag, and emits the same dual-stack `402` the gateway emits
+- it **fails toward free**: no config, no payout wallet, an existing customer, an
+  unpriced route, or terms it cannot quote honestly all serve the request
+  untouched; only verification fails closed
+- new **Connect → Integrations** section in the portal: one row per deployment, a
+  connection light derived from the last check-in, a four-step install wizard, a
+  per-route price/x402 table, and a connection test that probes
+  `{baseUrl}/.well-known/apiosk`
+- pricing has no parallel model — the linked listing's endpoint rows are the
+  prices, so SDK revenue reports through the same Analytics and Transactions
+- any stack can implement the contract directly: two HTTP calls, see
+  [/guides/integrations-api](/guides/integrations-api)
+- **settlement for SDK mode is not live yet**: a priced route issues a correct
+  `402` and then declines to deliver, so leave x402 switched off on routes you
+  depend on until it is announced
+- see [/guides/sdk-mode](/guides/sdk-mode) and
+  [/dashboard/integrations](/dashboard/integrations)
+
 ## 2026-07, Apiosk Pay: hosted checkout for human buyers
 
 `https://pay.apiosk.com` sells a marketplace's own products to people in browsers, alongside the agent-facing x402 rail. A marketplace creates a checkout with its `apk_live_` key, redirects the buyer, and reads the result back.
