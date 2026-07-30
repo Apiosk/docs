@@ -12,6 +12,22 @@ client so application code does not have to assemble the raw HTTP flow by hand.
 Use it when your software runs in a Node backend and you want gateway calls,
 typed payment errors, and optional automatic on-chain settlement in one package.
 
+<Note>
+The package ships **both sides** of a paid API call, because the same team that
+sells one API usually calls three others. This page is the buy side. To charge
+for an API **you** host, on **your** URL, see
+[SDK Middleware](/guides/sdk-middleware).
+
+| | | |
+| --- | --- | --- |
+| **Buy** | `ApioskClient` | Call APIs through the gateway and pay their `402`s. |
+| **Sell** | `ApioskProvider`, `@apiosk/sdk/express` *(and `/fastify`, `/next`, `/hono`)* | Issue the `402` on your own URL. |
+
+The names carry the asymmetry: `ApioskClient` pays `402`s, `ApioskProvider`
+issues them. Subpath exports keep the halves apart at runtime, so a server that
+only sells never loads the buy side's crypto dependencies.
+</Note>
+
 ## Install
 
 ```bash
@@ -183,3 +199,4 @@ The gateway client is intentionally separate from the merchant checkout UI:
 - Execute contract: [/guides/execute](/guides/execute)
 - Payment options: [/guides/payment-options](/guides/payment-options)
 - Errors and retries: [/guides/errors-and-retries](/guides/errors-and-retries)
+- Sell side of the same package: [/guides/sdk-middleware](/guides/sdk-middleware)

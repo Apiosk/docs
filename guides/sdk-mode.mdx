@@ -1,0 +1,124 @@
+---
+title: "SDK Mode"
+description: "Charge agents for an API you host, on your own URL, without moving traffic to the gateway: the middleware issues the 402, Apiosk handles discovery, pricing and settlement."
+---
+
+# SDK Mode
+
+In SDK mode `api.yourcompany.com/v1/todos` stays `api.yourcompany.com/v1/todos`.
+
+The Apiosk middleware sits in front of handlers you already run. A request
+carrying one of your existing customers' API keys falls through untouched. A
+request without one gets an [x402](https://x402.org) `402 Payment Required`, and
+once the payment verifies, **the same handler** runs.
+
+```text
+POST api.yourcompany.com/v1/todos
+
+  API key valid   → your customer  → normal flow, handler runs untouched
+  no API key      → an agent       → 402 payment required
+                                   → payment verified through Apiosk
+                                   → same handler
+```
+
+Nothing about your URL, your routing, or your existing customers changes. The
+only thing that moves to Apiosk is the **commerce configuration**: which routes
+are payable, at what price, and where the money goes.
+
+## Where it sits among the three modes
+
+| | Traffic path | `402` issued by | Settlement | Configured in |
+| --- | --- | --- | --- | --- |
+| **Gateway** | `gateway.apiosk.com/{slug}/…` proxies to your origin | Apiosk | Apiosk | dashboard |
+| **SDK** | your own host, unchanged | the middleware, on your host | Apiosk | dashboard |
+| **Federated** | your own host | your own code | you are paid directly | your `/.well-known/x402` |
+
+Gateway mode is the fastest way to sell a route you do not want to operate a
+paywall for. Federated mode indexes an API that already speaks x402 on its own.
+SDK mode is the middle: you keep the traffic, Apiosk keeps discovery, pricing,
+verification, analytics and payouts.
+
+Because Apiosk stays in the verify path, SDK-mode revenue lands in the same
+ledgers as gateway revenue: the same Analytics, the same Transactions, the same
+payout flow. There is no separate reporting surface to learn.
+
+## What it takes
+
+1. **Install the middleware** in front of your existing routes:
+   [SDK Middleware](/guides/sdk-middleware). Any stack that cannot use the npm
+   package can implement the same two HTTP calls directly:
+   [Integrations API](/guides/integrations-api).
+2. **Price your routes** in the portal under **Connect → Integrations**:
+   [Integrations](/dashboard/integrations).
+
+That order matters. The middleware reports the routes it serves at boot, so by
+the time you open the dashboard the route table is already filled in and all you
+do is set prices.
+
+## It fails toward free
+
+Installing a paywall in front of a working API is only safe if our outage cannot
+become your outage. Each of the following serves the request **free**, and they
+are all checked *before* the one condition that charges:
+
+1. **No config** — you are not registered yet, or Apiosk is unreachable and the
+   middleware has never polled.
+2. **No payout wallet** on the linked listing. A `402` that settles nowhere takes
+   money and delivers nothing.
+3. **Your own customer**, when `authFallback` is `passthrough` (the default).
+4. **No price**, or x402 switched off for that route, or a price of zero.
+5. **Terms we cannot quote honestly** — an asset or chain we have no verified
+   token facts for.
+
+Only then does an unpaid caller get a `402`. And only an **affirmatively
+verified** payment reaches your handler: an unreachable verifier, a rejected
+proof, or an ambiguous response all re-issue the challenge rather than deliver.
+
+A route discovered by the middleware is reported to Apiosk **unpriced and
+switched off**. Installing the middleware never starts charging for anything —
+that is always a decision you make in the dashboard.
+
+## What the caller sees
+
+The middleware emits a dual-stack challenge, the same shape the Apiosk gateway
+emits:
+
+- the **body** is x402 **v1** (bare network names, `maxAmountRequired`), which is
+  what every released payer SDK parses
+- the **`payment-required` header** is x402 **v2** (CAIP-2 ids, `amount`),
+  base64-encoded JSON, for header-first v2 clients and indexers
+
+Both advertise identical terms, so whichever dialect a buyer speaks they are
+quoted the same price to the same address. Proofs are accepted from either
+version (`x-payment` for v1, `payment-signature` for v2), and a settled call
+carries the receipt back in `x-payment-response`. See
+[x402 Versions](/guides/x402-versions).
+
+Settlement in SDK mode is **USDC on Base**. The gateway's wider network set
+(see [Multi-chain Settlement](/guides/multichain)) does not apply here: the
+middleware only quotes terms it holds verified token facts for, and quoting a
+chain it cannot settle on would produce a `402` no one can pay.
+
+## Status
+
+Registration, configuration, route discovery, the connection test and the `402`
+challenge are complete and tested end to end.
+
+<Warning>
+**Settlement for SDK-mode integrations is not live yet.** The gateway endpoint
+that verifies an integration's payment proof and records it in the revenue
+ledger is still being built. Until it ships, `verifyPayment` fails closed: a
+priced route issues a correct `402` and then declines to deliver.
+
+Install it, connect it, price your routes, watch the dashboard go green — but
+leave x402 switched **off** on routes you depend on until settlement is
+announced.
+</Warning>
+
+## Related links
+
+- SDK middleware: [/guides/sdk-middleware](/guides/sdk-middleware)
+- Integrations API: [/guides/integrations-api](/guides/integrations-api)
+- Integrations in the portal: [/dashboard/integrations](/dashboard/integrations)
+- Provider SDK keys: [/guides/provider-sdk](/guides/provider-sdk)
+- Publisher lifecycle: [/guides/publisher-lifecycle](/guides/publisher-lifecycle)

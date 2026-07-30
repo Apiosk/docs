@@ -1,0 +1,132 @@
+---
+title: "Integrations"
+description: "Connect → Integrations in the provider portal: register a deployment running the Apiosk middleware, price its routes, and test the connection."
+---
+
+# Integrations
+
+**Connect → Integrations** is where an [SDK-mode](/guides/sdk-mode) deployment
+lives: a server of yours, on your own URL, running the Apiosk middleware in front
+of your own handlers. It is the one surface where a listing is configured but
+never proxied.
+
+One row per **deployment**, not per listing. Staging and production are two rows
+with two connection lights, because they are two servers that can fail
+independently.
+
+## Overview
+
+A card per deployment showing the connection light, the host, the route count and
+the SDK version.
+
+| Light | Means |
+| --- | --- |
+| **Connected** | Your server checked in recently and is serving the prices set here. |
+| **Not responding** | It has stopped checking in. It may be down, mid-redeploy, or running a revoked key. |
+| **Waiting for first call** | Registered here, but the middleware has never completed the handshake. |
+| **Disabled** | Paused. The middleware stops receiving config until you re-enable it. |
+
+Connected is **derived** from the last check-in, never stored. A server that dies
+has no way to tell us, so silence is the signal. The middleware polls every 30s by
+default; roughly three missed polls reads as an outage.
+
+## New integration
+
+A four-step wizard, in dependency order, because the failure mode it exists to
+prevent is silent:
+
+1. **Your server** — the public origin of the deployment, e.g.
+   `https://api.yourcompany.com`. This is the **identity** of the integration:
+   the middleware must be configured with exactly the same value or it registers
+   as a second, separate row and never sees the prices you set here. The row is
+   created at this step as *pending*, so an abandoned wizard leaves exactly what
+   the overview is built to show.
+2. **API key** — generate the `sk_live_…` key, verified against the API while the
+   secret is still on screen. It is shown once.
+3. **Install** — the snippet for your framework with the URL and key already in
+   it. Set the key as an environment variable on the deployment, not in source.
+4. **Test** — run the connection test against the running server.
+
+## Detail
+
+The detail view leads with **what is blocking money**, in the order it blocks:
+
+1. no server yet
+2. the server stopped checking in
+3. no payout wallet on the linked listing
+
+Below that: the connection test, the connection facts (host, SDK name and
+version, runtime, config version, last check-in, the key in use), the route
+table, the listing's agent-facing metadata, the payout wallet, and the install
+snippets.
+
+### The route table
+
+Price and x402 per route — the same endpoint editor the Products page uses,
+because SDK mode introduces **no parallel pricing model**. The listing's endpoint
+rows are the prices, and `payment_required` is "x402: enabled" for that route.
+Editing one bumps the config version, and the deployment picks it up on its next
+poll.
+
+A route is chargeable only when payment is enabled **and** the price is above
+zero. Below the priced routes sits **unpriced** — routes your server reports
+serving that carry no pricing row yet, so a route you shipped this morning shows
+up here instead of silently going unmonetised.
+
+`GET` and `HEAD` routes link straight at the real URL on your own host, which is
+the only end-to-end proof the paywall is on: an anonymous call should answer
+`402` with payment requirements, not `200` with the data. Other methods get a
+copyable `curl -i` instead, because a browser tab can only send `GET`.
+
+### Existing API keys
+
+`authFallback` decides what happens to a request carrying **your own** customer
+credential:
+
+| Setting | Behaviour |
+| --- | --- |
+| **Existing API keys pass through** (default) | A request your auth recognises reaches your handler exactly as it does today. Only unauthenticated callers — agents — get the `402`. |
+| **Charge every caller** | Every request is priced, including ones carrying your own customer keys. Only pick this for an API with no existing customers. |
+
+### Test connection
+
+The test gathers facts and nothing else. It writes nothing — `last seen`, status
+and config version are your server's word about itself, and a test that marked an
+integration active would be a test that always passes.
+
+| Check | What it means |
+| --- | --- |
+| **Your URL answers** | We called `{baseUrl}/.well-known/apiosk` from Apiosk. Any HTTP status counts as reachable. |
+| **Middleware installed** | That path returned a document we understand. A `404` means reachable *without* the middleware — a different finding, kept separate because collapsing them makes the test useless to debug with. |
+| **API key accepted** | Whether the key your server authenticated with is still active. A revoked key is the quiet failure: the server is up, the code is right, every config poll `401`s. |
+| **Server checked in** | The handshake — the only thing that proves the loop that moves money is closed. |
+
+A **base URL mismatch** is reported as a warning: your server reports one origin,
+this row is registered as another, so they are two integrations and the prices
+set here reach nothing.
+
+The verdict follows from those, and *"Connection active"* is reserved for a
+recent check-in. A host can answer the well-known path while its key is dead or
+it points at another account; conversely, a deployment behind a WAF that blocks
+our probe is still active if it is checking in.
+
+## Revenue
+
+SDK-mode calls land in the same ledgers as gateway calls, so **Analytics** and
+**Transactions** need no special reading. See
+[Payments and Usage](/dashboard/payments-and-usage).
+
+<Warning>
+Settlement for SDK-mode integrations is not live yet — the gateway endpoint that
+verifies an integration's payment proof is still being built. A priced route
+issues a correct `402` and then declines to deliver, which is the safe failure.
+Leave x402 switched **off** on routes you depend on until settlement is
+announced.
+</Warning>
+
+## Related links
+
+- SDK mode: [/guides/sdk-mode](/guides/sdk-mode)
+- SDK middleware: [/guides/sdk-middleware](/guides/sdk-middleware)
+- Integrations API: [/guides/integrations-api](/guides/integrations-api)
+- Publishing: [/dashboard/publishing](/dashboard/publishing)

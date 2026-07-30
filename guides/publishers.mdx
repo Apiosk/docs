@@ -10,6 +10,14 @@ gateway returns `402` to unpaid callers and only forwards paid requests to your
 origin. If your goal is to gate a skill, download, or service behind payment,
 see [Payment Checks](/guides/payment-check).
 
+<Note>
+This page is **gateway mode**: your traffic is proxied through
+`gateway.apiosk.com` and the gateway issues the `402`. If you would rather keep
+your own URL and your own traffic — with the `402` issued by a middleware running
+on your host — see [SDK Mode](/guides/sdk-mode). Discovery, pricing, verification
+and payouts work the same either way.
+</Note>
+
 ## Signed wallet headers
 
 Management routes use signed wallet headers:
