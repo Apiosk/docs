@@ -1,0 +1,58 @@
+---
+title: "Organisations and workspaces"
+description: "Who can spend what: members, workspaces, budgets and the main balance."
+---
+
+An organisation owns the money. Everything else — people, workspaces, keys —
+spends within what the organisation allows.
+
+```
+Organisation
+├── Main balance          funds API keys, and feeds workspace budgets
+├── Members               owner, admin, member
+├── Workspaces            each with its own budget and members
+└── API keys              machine credentials, main balance
+```
+
+## Members
+
+| Role | Can |
+| --- | --- |
+| **Owner** | Everything, including transferring ownership and managing admins |
+| **Admin** | Manage workspaces, members, budgets and API keys |
+| **Member** | Work in the workspaces they belong to |
+
+An organisation always has at least one owner. Admins are invited by email from
+**Organisation → Members**.
+
+## Workspaces
+
+A workspace is a team's own space, with its own balance and its own members.
+Workspace roles are separate from organisation roles:
+
+| Workspace role | Can |
+| --- | --- |
+| **Admin** | Manage the workspace, its members and its settings |
+| **Member** | Spend the workspace budget |
+| **Viewer** | See activity, spend nothing |
+
+## Money
+
+- **The main balance** is topped up under **Organisation → Billing**. It funds
+  API keys directly.
+- **A workspace budget** is allocated from the main balance and returned to it
+  the same way. Money moves between them; it is never created by moving.
+- **Reserved funds** — a purchase in flight — cannot be allocated away until
+  the purchase settles.
+
+## What spends from where
+
+| Spender | Spends |
+| --- | --- |
+| A person in a workspace | That workspace's budget |
+| A person outside any workspace | Their own balance |
+| A [connection](/app/connections) bound to a workspace | That workspace's budget |
+| An [API key](/app/api-keys) | The organisation's main balance |
+
+API keys never spend a workspace budget. That is deliberate: a machine
+credential has one funding source, and it is the one an admin controls.

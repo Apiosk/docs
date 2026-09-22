@@ -1,0 +1,92 @@
+---
+title: "Authentication"
+description: "Organisation API keys: how to create one, what it may do, and what it spends."
+---
+
+Every request to the Apiosk API carries an organisation API key.
+
+```http
+Authorization: Bearer apk_org_live_…
+```
+
+Base URL: `https://gateway.apiosk.com`
+
+## Create a key
+
+An organisation owner or admin creates keys in the app, under
+**Organisation → API keys**. A key has a name, an expiry date, a per-request
+limit, a monthly limit and a set of permissions.
+
+The secret is shown **once**, at creation. Apiosk stores only its hash and can
+never show it again; if it is lost, revoke the key and create another.
+
+<Note>
+A key belongs to the organisation, not to the person who created it. All keys
+of one organisation spend from the same main balance, each within its own
+limits. Revoking a key stops it immediately, including runs it has not started.
+</Note>
+
+## Permissions
+
+A key is created with the permissions it needs, and nothing else.
+
+| Scope | Allows |
+| --- | --- |
+| `sources:read` | `GET /v2/sources`, `GET /v2/sources/{source_id}` |
+| `sources:execute` | `POST /v1/execute/{source}/{operation}`, `POST /v2/sources/{source_id}/run` |
+| `ask:create` | `POST /v2/ask` with `execution_mode: "plan"` |
+| `ask:execute` | `POST /v2/asks/{id}/run`, and `POST /v2/ask` with `execution_mode: "auto"` |
+| `billing:read` | `GET /v2/balance`, `GET /v2/usage` |
+
+## Check that a key works
+
+```bash
+curl https://gateway.apiosk.com/v2/balance \
+  -H "Authorization: Bearer $APIOSK_KEY"
+```
+
+```json
+{
+  "organisation_id": "0d2a…",
+  "balance": { "available": { "amount": 47.82, "amount_micro_usd": "47820000", "currency": "USD" } },
+  "key": {
+    "id": "8c41…",
+    "name": "Nomi Production",
+    "scopes": ["sources:read", "sources:execute", "ask:create", "ask:execute", "billing:read"],
+    "expires_at": "2027-09-22T16:41:08Z"
+  },
+  "limits": {
+    "per_request": { "amount": 2, "amount_micro_usd": "2000000", "currency": "USD" },
+    "monthly": { "amount": 100, "amount_micro_usd": "100000000", "currency": "USD" },
+    "month_spent": { "amount": 0.54, "amount_micro_usd": "540000", "currency": "USD" },
+    "month_remaining": { "amount": 99.46, "amount_micro_usd": "99460000", "currency": "USD" },
+    "month_start": "2026-09-01T00:00:00Z"
+  }
+}
+```
+
+## Refusals
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| 401 | `invalid_api_key` | No key, or a key Apiosk does not know |
+| 401 | `api_key_expired` | The key passed its expiry date |
+| 401 | `api_key_revoked` | The key was revoked in the app |
+| 403 | `insufficient_scope` | The key lacks the permission this endpoint needs; `required_scope` names it |
+| 403 | `organisation_unavailable` | The organisation cannot spend from its main balance right now |
+
+```json
+{
+  "error": {
+    "code": "insufficient_scope",
+    "message": "This API key does not have the permission this endpoint needs. An organisation admin can create a key that has it.",
+    "required_scope": "sources:execute"
+  }
+}
+```
+
+## Handling keys
+
+- **Keep the secret server-side.** It can spend the organisation's balance up to its limits.
+- **One key per environment.** Production and staging get their own key, their own limits and their own usage line.
+- **Rotate by creating and revoking.** Create the new key, deploy it, then revoke the old one; both work while you switch.

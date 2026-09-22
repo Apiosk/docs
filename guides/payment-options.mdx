@@ -19,7 +19,7 @@ Best when you want the easiest operational flow.
 Creating a new managed (custodial) wallet is currently unavailable: the legacy dashboard service that derived and encrypted wallet keys has been retired, and creation returns `custodial_wallet_creation_unavailable`. Existing managed wallets still settle calls, and connect tokens can still be minted for them. To provision a wallet yourself today, run the local stdio MCP package and create a local wallet, or use raw x402 mode with your own payer.
 </Warning>
 
-If you are using the local Apiosk MCP package, import that connect string through `apiosk_get_started` so the package can save it locally and verify the setup with a first call.
+If you are using the local Apiosk MCP package, pass that connect string to the package and check it with `apiosk_connect`, which reports the wallet, policy and limits the session may use.
 
 ## 2. Raw x402 proof flow
 
@@ -57,4 +57,4 @@ Some routes can be configured as free. In those cases the gateway does not requi
 - use raw x402 mode for protocol-level integrations and explicit payment control
 - use the SEPA rail when the buyer needs euro-denominated bank settlement
 - use unpaid mode only when the listing or endpoint is intentionally public
-- for local MCP installs, start with `apiosk_get_started` and let it tell you whether you are ready or still need funding
+- for local MCP installs, start with `apiosk_connect` and let it tell you whether you are ready or still need funding

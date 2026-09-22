@@ -1,106 +1,54 @@
 ---
-title: "Gateway Overview"
-description: "Public integration docs for the Apiosk gateway."
+title: "Apiosk"
+description: "Ask a question, get verifiable data, pay per call."
 ---
 
-# Apiosk Gateway
+Apiosk buys data for you. You ask for something — a company's filed accounts, a
+registered address, a tender — and Apiosk finds the sources that can answer,
+shows the price before anything is bought, buys only what it needs, and hands
+back the source's own document with what it cost.
 
-The Apiosk gateway is a pay-per-call API surface for agents and applications. Consumers discover APIs, inspect machine-readable metadata, receive an `HTTP 402` payment challenge when required, attach an `x-payment` proof, and execute calls through a uniform contract.
+One catalogue, one price list, one ledger. Three ways to reach it.
 
-## At a glance
+<CardGroup cols={3}>
+  <Card title="The app" icon="browser" href="/app/organisations">
+    Ask questions, manage your team and workspaces, top up the balance, read usage.
+  </Card>
+  <Card title="The API" icon="code" href="/api/authentication">
+    Your servers, with an organisation API key. Discover, call one source, or let Apiosk plan.
+  </Card>
+  <Card title="MCP" icon="robot" href="/mcp/overview">
+    ChatGPT, Claude and agent clients, connected once and spending under limits.
+  </Card>
+</CardGroup>
 
-The gateway acts as a public x402 payment boundary. A client requests execution, receives pricing in a `402 Payment Required` response when the route is paid, settles in USDC on a supported network, Base, Polygon, or Arbitrum, retries with a proof, and then receives the upstream result through the same public surface. See [Multi-chain Settlement](/guides/multichain).
+## The shortest paid call
 
-![x402 crypto rail flow](/images/x402-crypto-rail-flow.svg)
-
-This is the fastest way to understand the model:
-
-1. The agent makes a normal request to the gateway.
-2. The gateway returns `HTTP 402` plus pricing when payment is required.
-3. The client settles on-chain and attaches the proof in `x-payment`.
-4. The gateway verifies the proof, forwards the call, and returns data.
-
-## Ways to integrate
-
-Pick the path that fits where your software runs. Same payment flow, four ways to
-wire it up.
-
-| Path | Best for | Guide |
-| --- | --- | --- |
-| **Gateway API** (direct HTTP) | Maximum control over headers, retries, and the raw `402` loop | [/guides/consumers](/guides/consumers) · [/guides/execute](/guides/execute) |
-| **Remote MCP** | ChatGPT and agent clients, add the URL, OAuth once, run paid tools | [/guides/mcp-clients](/guides/mcp-clients) |
-| **JavaScript SDK** (`@apiosk/sdk`) | Node backends that want typed `402` errors and auto-pay | [/guides/sdk](/guides/sdk) |
-| **Gateway Skill** | Coding agents (Claude Code, Codex) running paid calls from a shell | [/guides/gateway-skill](/guides/gateway-skill) |
-
-If you sell access instead of buying it, gating a skill, download, or service
-behind payment, see [Payment Checks](/guides/payment-check).
-
-## Ways to get paid
-
-Three modes, and the difference is where the traffic goes.
-
-| Mode | Your API is served from | `402` issued by | Guide |
-| --- | --- | --- | --- |
-| **Gateway** | `gateway.apiosk.com/{slug}/…`, proxied to your origin | Apiosk | [/guides/publishers](/guides/publishers) |
-| **SDK** | **your own URL, unchanged** | the Apiosk middleware, on your host | [/guides/sdk-mode](/guides/sdk-mode) |
-| **Federated** | your own URL | your own code, from your `/.well-known/x402` | [/guides/sdk-mode](/guides/sdk-mode) |
-
-SDK mode is the middle path: you keep your traffic and your existing customers,
-Apiosk keeps discovery, pricing, verification, analytics and payouts. Install the
-middleware in front of the routes you already run
-([/guides/sdk-middleware](/guides/sdk-middleware)), or implement the same two
-HTTP calls yourself ([/guides/integrations-api](/guides/integrations-api)).
-
-If your buyer is a **person with a browser** rather than an agent, use the hosted
-checkout at `pay.apiosk.com`: you create a checkout server-to-server, redirect the
-buyer, and their own wallet pays your seller, you, and Apiosk in one transaction.
-See [Apiosk Pay](/pay/overview).
-
-## GPT-native MCP quickstart
-
-If you are integrating Apiosk into ChatGPT or another remote MCP client, do not start with raw gateway calls. Start with the hosted MCP endpoint instead:
-
-```text
-https://mcp.apiosk.com/mcp
+```bash
+curl https://gateway.apiosk.com/v1/execute/kvk/company_registry.search \
+  -H "Authorization: Bearer $APIOSK_KEY" \
+  -H "Idempotency-Key: my-request-1" \
+  -H "Content-Type: application/json" \
+  -d '{"company.name":"Mollie B.V."}'
 ```
 
-The remote MCP flow is:
+The key says who pays, the path says what to run, the body carries the inputs.
+The answer arrives with the data, what it cost and what is left.
+[Start here](/overview/quickstart).
 
-1. Add the hosted MCP endpoint to your GPT client.
-2. Complete hosted OAuth with your Apiosk dashboard account.
-3. Use discovery and paid tools from the same chat session.
+## What holds it together
 
-Important behavior:
+- **One catalogue.** Every source in `GET /v2/sources` can be called directly
+  and can appear in a plan. There are no API-only sources.
+- **One price.** What a source costs in the catalogue is what a run is charged,
+  fee included. The per-source usage of a run adds up to its total.
+- **Money moves in one order.** Approve, reserve, run, settle. Nothing is paid
+  before it is bought, and a failed call is refunded.
+- **Retries are safe.** An `Idempotency-Key` makes a repeat call the same call.
 
-- No handoff file is required for GPT-native MCP clients.
-- Direct gateway plus `X-Apiosk-Connect-Token` is still the right path for manual HTTP runtimes and raw x402 flows.
-- Full setup instructions live in [/guides/mcp-clients](/guides/mcp-clients).
+## For providers
 
-## Public routes that matter
-
-| Route | Purpose |
-| --- | --- |
-| `GET /types` | Discover listing groups. |
-| `GET /v1/apis` | Search and paginate public listings. |
-| `GET /v1/apis/:slug` | Inspect one public listing and its endpoint docs. |
-| `GET /:api_slug/metadata` | Fetch MCP-style metadata and operation hints. |
-| `POST /:api_slug/execute` | Execute through the agent-native contract. |
-| `POST /v1/apis/register` | Publish a community API listing. |
-
-## How the public flow works
-
-1. Discover an API from the catalog.
-2. Read `/:api_slug/metadata` to understand the default operation, schemas, price, and tags.
-3. Call `/:api_slug/execute`.
-4. If the route is paid, handle the `402 Payment Required` response and attach an `x-payment` proof.
-5. Receive a normalized response envelope with `result`, `cost`, `latency`, and `status`.
-
-## What these docs do not expose
-
-- settlement and payout topology
-- operator controls
-- replay and anti-abuse implementation details
-- managed wallet or session internals
-- internal forwarding behavior that is not part of the public contract
-
-Use the guides for integration patterns and the API reference for the route-level contract.
+Publishing an API and getting paid per call runs on the x402 rail, with its own
+dashboard and its own docs: [publishing](/guides/publishers),
+[the provider dashboard](/dashboard/overview) and
+[Apiosk Pay](/pay/overview) for hosted checkouts.

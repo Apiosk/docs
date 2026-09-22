@@ -5,6 +5,54 @@ description: "Shared definitions for the public gateway, dashboard, and payment 
 
 # Terminology
 
+## Source
+
+A published data provider in the Apiosk catalogue, identified by an id such as `kvk`. Listed by `GET /v2/sources`.
+
+## Operation
+
+One thing a source can do, such as `company_registry.search`, with its own inputs, outputs and price. Named in the path of a call.
+
+## Ask
+
+A question in a person's own words. Apiosk turns it into a plan across sources.
+
+## Plan
+
+The steps an ask would run, each with its own price, plus a ceiling for the whole thing. Planning is free; a plan expires.
+
+## Run
+
+One execution of a direct call or a plan. It carries its results, what it cost per source, and what the balance is now.
+
+## Organisation
+
+The account that owns the money. It has members, workspaces and API keys.
+
+## Workspace
+
+A team space inside an organisation, with its own budget and members.
+
+## API key
+
+An organisation credential (`apk_org_live_…`) that a server uses to buy data, with a per-request limit, a monthly limit and permissions.
+
+## Connection
+
+A credential a person grants to an assistant, with a per-request and a daily ceiling. See [Connections](/app/connections).
+
+## Balance
+
+Prepaid funds in USD. The organisation's main balance funds API keys; workspace budgets are allocated from it.
+
+## Micro-USD
+
+A millionth of a dollar. Every amount in the API carries both a decimal `amount` and an exact `amount_micro_usd` integer, so no rounding is implied.
+
+## Publishing terms
+
+The words below belong to the provider side: publishing an API and being paid per call.
+
 ## Listing
 
 A public entry in the gateway catalog. A listing has a slug, description, pricing information, and optional agent-facing metadata.

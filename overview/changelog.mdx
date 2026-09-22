@@ -7,6 +7,12 @@ description: "Public-facing record of notable Apiosk gateway changes."
 
 A summary of recent product changes that affect public integrators, consumers building against the gateway, publishers managing listings, and operators wiring agent wallets. Internal infrastructure work is intentionally omitted.
 
+## 2026-09-22
+
+- **Organisation API keys.** Owners and admins create `apk_org_live_…` keys under **Organisation → API keys**, with a per-request limit, a monthly limit, an expiry and permissions. Keys spend the organisation's main balance. See [API keys](/app/api-keys).
+- **The API.** `GET /v2/sources`, `GET /v2/sources/{id}`, `POST /v1/execute/{source}/{operation}`, `POST /v2/sources/{id}/run`, `POST /v2/ask`, `POST /v2/asks/{id}/run`, `GET /v2/runs/{id}`, `GET /v2/balance` and `GET /v2/usage`, with one error shape and `Idempotency-Key` on every paid call. See [Authentication](/api/authentication).
+- **Docs corrected.** The MCP pages now list the tools the servers actually expose; `/v1/balance` and `/v1/usage` are marked deprecated, since they return zeros — use `/v2/balance` and `/v2/usage`.
+
 ## 2026-07, SDK mode: get paid on your own URL
 
 A third way to serve a listing, next to gateway mode and federated mode. The

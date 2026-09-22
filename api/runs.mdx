@@ -1,0 +1,79 @@
+---
+title: "Runs"
+description: "Read a run: its status, its results, what it cost and what is left."
+---
+
+Every paid call — direct or Ask — produces a run with the same shape. A run's
+id is the `id` of the ask or call that created it.
+
+## Read a run
+
+```http
+GET /v2/runs/{id}
+GET /v2/asks/{id}
+```
+
+Both are the same endpoint. Only the key that created a run can read it.
+
+```bash
+curl "https://gateway.apiosk.com/v2/runs/5c1f…?wait_seconds=10" \
+  -H "Authorization: Bearer $APIOSK_KEY"
+```
+
+| Query parameter | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `wait_seconds` | integer 0–55 | 0 | Wait for a running run to finish before answering |
+| `limit` | integer 1–50 | none | Cap the number of result documents returned |
+
+An approved run whose worker stopped — a deploy, a crash — is resumed from its
+saved journal when you read it. Nothing is paid twice: work already paid for is
+never re-dispatched.
+
+## The run object
+
+```json
+{
+  "id": "5c1f…",
+  "status": "completed",
+  "question": "…",
+  "plan": { "quote_ref": "9ad2…", "expires_at": "…", "steps": [], "estimated_total": {} },
+  "answer": {
+    "status": "completed",
+    "observations": [{ "text": "The registry lists KVK number 30197151.", "evidence": [{ "result_ref": "a72e…", "pointer": "/data/companies/0/kvkNummer" }] }],
+    "limitations": []
+  },
+  "results": [{ "result_ref": "a72e…", "source": { "provider": "kvk", "name": "KVK" }, "data": {} }],
+  "usage": {
+    "sources": [{ "source_id": "kvk", "operation": "company_registry.search", "calls": 1, "cost": {} }],
+    "cost": { "amount": 0.023, "amount_micro_usd": "23000", "currency": "USD" },
+    "held": { "amount": 0, "amount_micro_usd": "0", "currency": "USD" }
+  },
+  "balance": { "remaining": { "amount": 47.797, "amount_micro_usd": "47797000", "currency": "USD" } },
+  "errors": []
+}
+```
+
+<ResponseField name="answer" type="object | null">
+Apiosk's reading of the results, with a pointer into the document behind every
+observation. Present when the question asked for one; `null` for a direct call.
+</ResponseField>
+
+<ResponseField name="results" type="array">
+The source documents themselves, each with the source that produced it and a
+`result_ref` you can quote in support tickets.
+</ResponseField>
+
+<ResponseField name="errors" type="array">
+Per-step problems, each with a code and a message. A `partial` run has both
+results and errors.
+</ResponseField>
+
+## Status codes
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| 200 | — | The run, in whatever state it is |
+| 202 | — | Still running |
+| 401 | `invalid_api_key` | See [Authentication](/api/authentication) |
+| 404 | `run_not_found` | No run with this id belongs to this key |
+| 502 | `source_error` | The run failed; `usage` shows what was charged |

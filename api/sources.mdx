@@ -1,0 +1,133 @@
+---
+title: "Sources"
+description: "Find sources and read the operations, inputs and prices of one."
+---
+
+Browsing is free. Nothing on this page charges the balance.
+
+## List sources
+
+```http
+GET /v2/sources
+```
+
+Requires `sources:read`.
+
+| Query | Type | Meaning |
+| --- | --- | --- |
+| `search` | string, ≤200 chars | Matches name, description, category, tags, sectors and capabilities |
+| `category` | string | Exact category, as returned in `categories` |
+| `tag` | string | Exact tag |
+| `sector` | string | Exact sector |
+| `capability` | string | Only sources with this operation |
+| `offset` | integer | Page start; use `next_offset` from the previous page |
+| `limit` | integer, 1–50 | Page size, default 20 |
+
+```bash
+curl -G https://gateway.apiosk.com/v2/sources \
+  -H "Authorization: Bearer $APIOSK_KEY" \
+  --data-urlencode "search=company registry" \
+  --data-urlencode "limit=2"
+```
+
+```json
+{
+  "protocol_version": "2",
+  "sources": [
+    {
+      "slug": "kvk",
+      "name": "KVK",
+      "description": "Dutch business register",
+      "category": "company",
+      "categories": ["company"],
+      "tags": ["registry", "netherlands"],
+      "sectors": ["public"],
+      "capabilities": ["company_registry.search", "company_registry.profile"],
+      "input_types": ["company.name"],
+      "endpoint_count": 4,
+      "available_in_v2": true,
+      "logo_url": "https://…/kvk.png"
+    }
+  ],
+  "total": 1,
+  "catalog_total": 48,
+  "offset": 0,
+  "next_offset": null,
+  "categories": ["company", "finance", "location"],
+  "tags": ["registry", "netherlands"],
+  "sectors": ["public"],
+  "capabilities": ["company_registry.search"]
+}
+```
+
+`total` counts matching sources; `catalog_total` counts every purchasable
+source. A source is counted once: services published under one provider appear
+nested on that source, not as sources of their own.
+
+## Read one source
+
+```http
+GET /v2/sources/{source_id}
+```
+
+Requires `sources:read`. This is where the operation ids, input fields and
+prices for a call come from.
+
+```bash
+curl https://gateway.apiosk.com/v2/sources/kvk \
+  -H "Authorization: Bearer $APIOSK_KEY"
+```
+
+```json
+{
+  "id": "kvk",
+  "name": "KVK",
+  "description": "Dutch business register",
+  "category": "company",
+  "tags": ["registry", "netherlands"],
+  "sectors": ["public"],
+  "jurisdiction": "NL",
+  "operations": [
+    {
+      "id": "company_registry.search",
+      "name": "Company search",
+      "input": [
+        { "field": "company.name", "required": true, "schema": { "type": "string", "minLength": 2 } }
+      ],
+      "output": ["company_registry.kvknummer", "company.name"],
+      "pricing": {
+        "model": "per_call",
+        "price": { "amount": 0.023, "amount_micro_usd": "23000", "currency": "USD" }
+      },
+      "freshness_seconds": 3600
+    }
+  ]
+}
+```
+
+<ResponseField name="operations[].id" type="string">
+The operation id you put in the path of a call.
+</ResponseField>
+
+<ResponseField name="operations[].input" type="array">
+Each field with whether it is required and the JSON schema its value must match.
+Values are validated before anything is priced.
+</ResponseField>
+
+<ResponseField name="operations[].output" type="array">
+What the operation produces. An operation whose output is another operation's
+required input is how a plan gets built; see [Ask](/api/ask).
+</ResponseField>
+
+<ResponseField name="operations[].pricing.price" type="object">
+What one call costs the buyer, with the Apiosk fee already included. Every
+amount in the API carries both a decimal `amount` and the exact integer
+`amount_micro_usd`.
+</ResponseField>
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| 200 | — | The source and its operations |
+| 401 | `invalid_api_key` | See [Authentication](/api/authentication) |
+| 403 | `insufficient_scope` | The key lacks `sources:read` |
+| 404 | `source_not_found` | No purchasable source has this id or name |

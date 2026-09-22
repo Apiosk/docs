@@ -1,0 +1,168 @@
+---
+title: "Call a source"
+description: "Buy one call from one source: the path names what to run, the body carries the inputs."
+---
+
+This is the shortest paid call Apiosk has. No model interprets anything: you
+name the source and the operation, and Apiosk runs exactly that.
+
+Requires `sources:execute`.
+
+## Request
+
+```http
+POST /v1/execute/{source}/{operation}
+POST /v2/execute/{source}/{operation}
+```
+
+Both paths are the same endpoint. The body is the operation's inputs and
+nothing else:
+
+```bash
+curl https://gateway.apiosk.com/v1/execute/kvk/company_registry.search \
+  -H "Authorization: Bearer $APIOSK_KEY" \
+  -H "Idempotency-Key: nomi-request-983472" \
+  -H "Content-Type: application/json" \
+  -d '{"company.name":"Mollie B.V."}'
+```
+
+| Query parameter | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `max_spend` | decimal USD | none | Refuse before paying if the plan's maximum cost is higher |
+| `wait_seconds` | integer 0–55 | 25 | How long to wait for the result before answering `202` |
+| `limit` | integer 1–50 | none | Cap the number of result documents returned |
+
+The `Idempotency-Key` header is optional and strongly recommended; see
+[Idempotency](/api/idempotency).
+
+### What the path accepts
+
+- **Source**: its id (`kvk`) or its name (`KVK`), case-insensitive.
+- **Operation**: its capability (`company_registry.search`), its endpoint id, or its name.
+
+### What the body accepts
+
+Each input may be named three ways, so you can use whichever you have:
+
+| Form | Example |
+| --- | --- |
+| The fact type, as `GET /v2/sources/{id}` lists it | `{"company.name": "Mollie B.V."}` |
+| The name the source's own API uses | `{"naam": "Mollie B.V."}` |
+| The last word, when it is unambiguous for that operation | `{"name": "Mollie B.V."}` |
+
+## Response
+
+`200` with the finished run:
+
+```json
+{
+  "id": "6f0b…",
+  "status": "completed",
+  "question": "Run company_registry.search on kvk",
+  "plan": {
+    "quote_ref": "b41c…",
+    "expires_at": "2026-09-22T18:12:04Z",
+    "steps": [
+      {
+        "source_id": "kvk",
+        "operation": "company_registry.search",
+        "name": "Company search",
+        "conditional": false,
+        "estimated_cost": { "amount": 0.023, "amount_micro_usd": "23000", "currency": "USD" }
+      }
+    ],
+    "estimated_total": { "amount": 0.023, "amount_micro_usd": "23000", "currency": "USD" }
+  },
+  "answer": null,
+  "data": { "companies": [{ "kvkNummer": "30197151", "naam": "Mollie B.V." }] },
+  "results": [
+    {
+      "result_ref": "a72e…",
+      "source": { "provider": "kvk", "name": "KVK" },
+      "data": { "companies": [{ "kvkNummer": "30197151", "naam": "Mollie B.V." }] }
+    }
+  ],
+  "usage": {
+    "sources": [
+      { "source_id": "kvk", "operation": "company_registry.search", "calls": 1,
+        "cost": { "amount": 0.023, "amount_micro_usd": "23000", "currency": "USD" } }
+    ],
+    "cost": { "amount": 0.023, "amount_micro_usd": "23000", "currency": "USD" },
+    "held": { "amount": 0, "amount_micro_usd": "0", "currency": "USD" }
+  },
+  "balance": { "remaining": { "amount": 47.797, "amount_micro_usd": "47797000", "currency": "USD" } },
+  "errors": []
+}
+```
+
+<ResponseField name="data" type="object">
+The source's own document, present when the run produced exactly one — which a
+direct call normally does. The same document is in `results[0].data`.
+</ResponseField>
+
+<ResponseField name="usage.cost" type="object">
+What the ledger actually charged. It equals the sum of `usage.sources[].cost`.
+</ResponseField>
+
+<ResponseField name="usage.held" type="object">
+Money reserved for a call that has not settled yet. It is released or charged
+when the call resolves.
+</ResponseField>
+
+<ResponseField name="balance.remaining" type="object">
+The organisation's balance after this run.
+</ResponseField>
+
+## Status codes
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| 200 | — | The run finished; read `status` for `completed`, `partial`, `unsupported` or `needs_input` |
+| 202 | — | Still running after `wait_seconds`; poll `GET /v2/runs/{id}` |
+| 400 | `invalid_request` | Malformed body, `max_spend`, `limit` or `Idempotency-Key` |
+| 401 | `invalid_api_key` | See [Authentication](/api/authentication) |
+| 402 | `insufficient_balance` | Top up the organisation's balance |
+| 402 | `spend_limit_exceeded` | `limit` says which ceiling: `per_request`, `monthly` or `max_spend` |
+| 403 | `insufficient_scope` | The key lacks `sources:execute` |
+| 404 | `source_not_found` | No purchasable source has this id or name |
+| 404 | `operation_not_found` | The source has no such operation; `operations` lists what it has |
+| 409 | `idempotency_conflict` | The same key with a different body |
+| 422 | `invalid_source_input` | A field is unknown, missing, or does not match its schema |
+| 429 | `rate_limit_exceeded` | Wait, then retry with the same `Idempotency-Key` |
+| 502 | `source_error` | The source could not complete the run |
+
+Everything that refuses before a purchase says so: **nothing was charged**.
+
+```json
+{
+  "error": {
+    "code": "invalid_source_input",
+    "message": "Required inputs are missing. Nothing was charged.",
+    "missing": ["company.name"]
+  }
+}
+```
+
+<Warning>
+A direct call buys only the named source. If an operation needs an input that
+only another source can supply, Apiosk refuses with `422` rather than buying
+that other source for you. Supply the input, or use [Ask](/api/ask).
+</Warning>
+
+## The explicit form
+
+```http
+POST /v2/sources/{source_id}/run
+```
+
+```json
+{
+  "operation": "company_registry.search",
+  "input": { "company.name": "Mollie B.V." },
+  "max_spend": 1.00,
+  "wait_seconds": 25
+}
+```
+
+Same engine, price and response. Use it when a client builds requests from the
+catalogue and prefers a named envelope over a path.

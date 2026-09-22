@@ -1,214 +1,73 @@
 ---
-title: "MCP Clients"
-description: "Connect Apiosk to ChatGPT, Claude Code, Codex, and other MCP clients."
+title: "MCP clients"
+description: "The hosted server, the local package, and which tools each one exposes."
 ---
 
-# MCP Clients
+Apiosk speaks MCP two ways. They are different servers with different tool
+sets, so check which one you are running.
 
-Apiosk supports both hosted remote MCP and local stdio MCP.
+## Hosted (recommended)
 
-## Tools you get
-
-The hosted server ships a deliberately lean buyer surface so agents are not
-forced to reason about a large tool list. A buyer connection (OAuth, connect
-token, or pre-auth) sees exactly these ten tools, plus the dynamic
-API-specific tools generated from the catalog:
-
-| Tool | What it does |
-| --- | --- |
-| `apiosk_help` | Orientation and next-step guidance |
-| `apiosk_search` | Keyword search across the catalog |
-| `apiosk_get_api` | Full detail for one listing |
-| `apiosk_execute` | Call a listed API, paying if the route is paid |
-| `apiosk_discover` | Browse the catalog |
-| `apiosk_explore` | Explore listings and their operations |
-| `apiosk_inspect_x402` | Inspect any external x402 resource's `402` challenge |
-| `apiosk_fetch_paid` | Pay and fetch an external x402 resource |
-| `apiosk_payment_guide` | Explain the payment modes and how to get funded |
-| `apiosk_list_wallets` | Show wallet address, spend limits, and funding |
-
-Nothing is actually lost by the trimmed list: **every hidden tool is still
-dispatchable by name**, so a client that already knows a tool name can call it.
-The full 28-tool surface is one environment flag away, set
-`APIOSK_MCP_FULL_TOOLS=true` on the server.
-
-Authenticating with a provider key (`sk_live_`) swaps the buyer surface for a
-publishing surface: `apiosk_help`, `apiosk_payment_guide`, `apiosk_search`,
-`apiosk_get_api`, plus the seven publisher tools. Managed-wallet CRUD is
-excluded from that surface because it needs a dashboard session JWT that a
-provider key does not carry. See [/guides/publisher-mcp](/guides/publisher-mcp).
-
-`apiosk_get_started` is not part of the hosted set: it writes local wallet or
-connect-token state and is only available in the local stdio package.
-
-## GPT-native clients
-
-If you are connecting Apiosk to ChatGPT or another remote MCP client, use the hosted endpoint:
-
-```text
+```
 https://mcp.apiosk.com/mcp
 ```
 
-`https://apiosk.com/mcp` is a live alias for the same server (the apex host
-proxies it), so either URL works. Prefer the canonical
-`https://mcp.apiosk.com/mcp`.
+Streamable HTTP, OAuth on first use, no local state. Four tools:
+`apiosk_sources`, `apiosk_discover`, `apiosk_execute`, `apiosk_status`, plus an
+approval tool the interactive card uses when a person clicks Approve.
 
-### Quick setup
+Setup and behaviour: **[MCP server](/mcp/overview)**.
 
-1. Add `https://mcp.apiosk.com/mcp` as the remote MCP server in ChatGPT Developer Mode or another GPT-native MCP client.
-2. Complete the hosted OAuth sign-in with your Apiosk dashboard account.
-3. Refresh the connector or start a new chat if the client cached older tool definitions.
+<CodeGroup>
 
-<details>
-  <summary>See a representative tool payload</summary>
-
-```json
-{
-  "tool": "bella-pizza",
-  "input": {
-    "type": "Tonno",
-    "size": "Small"
-  },
-  "response": {
-    "api": "bella-pizza",
-    "operation": "/orders",
-    "status": "success",
-    "payment_rail": "credits",
-    "result": {
-      "order_id": "94429859",
-      "address": "Saved address on file"
-    }
-  }
-}
-```
-</details>
-
-### How the hosted GPT flow works
-
-- Public discovery can be visible before sign-in.
-- Protected tools challenge for OAuth and unlock after login.
-- You do not need to upload a handoff file to use the MCP connector.
-- The handoff file is only for manual gateway calls and non-MCP runtimes.
-
-### Billing behavior
-
-- Hosted GPT-native MCP clients authenticate as your Apiosk session and reuse the managed wallets and connect tokens that session already has.
-- Creating a **new** managed (custodial) wallet from the hosted server is currently unavailable: it returns `custodial_wallet_creation_unavailable` because the legacy dashboard service that derived and encrypted wallet keys has been retired. Existing managed wallets are still readable and still settle calls, and connect tokens can still be minted. To provision a wallet yourself, run the local stdio package and use `apiosk_wallet_create`.
-- Direct gateway calls with `X-Apiosk-Connect-Token` or local wallet-backed `x-payment` proofs remain the path for raw agent-wallet and x402 execution.
-- If you need a specific rail, choose the runtime and auth mode deliberately instead of assuming all clients settle the same way.
-
-## Claude Code
-
-Add Apiosk:
-
-```bash
-claude mcp add apiosk -- npx -y @apiosk/mcp
-```
-
-Check the saved server:
-
-```bash
-claude mcp get apiosk
-```
-
-List configured MCP servers:
-
-```bash
-claude mcp list
-```
-
-## Codex
-
-Add Apiosk:
-
-```bash
-codex mcp add apiosk -- npx -y @apiosk/mcp
-```
-
-Check the saved server:
-
-```bash
-codex mcp get apiosk
-```
-
-List configured MCP servers:
-
-```bash
-codex mcp list
-```
-
-## What each command does
-
-- `add` registers the Apiosk MCP server in your local client config.
-- `get` shows the saved configuration for `apiosk` and whether the client can connect.
-- `list` shows configured MCP servers. It does not list internal Apiosk tools one by one.
-
-## First-run setup in local stdio mode
-
-If you use the npm package locally, the fastest way to get from install to a working paid-capable setup is to call `apiosk_get_started`.
-
-Create a local wallet automatically, discover the catalog, and run a small test call:
-
-```json
-{
-  "wallet_label": "My Apiosk wallet",
-  "test_slug": "agent-json-diff",
-  "test_input": {
-    "before": { "ok": true },
-    "after": { "ok": false }
-  }
-}
-```
-
-Or import a dashboard connect string and verify it immediately:
-
-```json
-{
-  "connect_string": "export APIO_GATEWAY_URL=https://gateway.apiosk.com\nexport APIO_CHAIN_ID=8453\nexport APIO_AGENT_WALLET_ADDRESS=0x...\nexport APIO_CONNECT_TOKEN=aw_...\nexport APIO_CONNECT_AUTHORIZATION=Bearer aw_...\nexport APIO_CONNECT_HEADER_NAME=X-Apiosk-Connect-Token",
-  "test_slug": "agent-json-diff",
-  "test_input": {
-    "before": { "ok": true },
-    "after": { "ok": false }
-  },
-  "create_wallet": false
-}
-```
-
-`apiosk_get_started` is only available in local stdio mode because it saves local wallet or connect-token state under `~/.apiosk`.
-
-## Hosted MCP alternative
-
-If you prefer the hosted MCP endpoint instead of the npm package, use the public URL:
-
-### Claude Code
-
-```bash
+```bash Claude Code
 claude mcp add --transport http apiosk https://mcp.apiosk.com/mcp
-claude mcp get apiosk
 ```
 
-### Codex
+```json Config file
+{
+  "mcpServers": {
+    "apiosk": { "url": "https://mcp.apiosk.com/mcp" }
+  }
+}
+```
+
+</CodeGroup>
+
+In ChatGPT, add the same URL as a connector.
+
+## Local stdio package
 
 ```bash
-codex mcp add apiosk --url https://mcp.apiosk.com/mcp
-codex mcp get apiosk
+npx -y @apiosk/mcp
+# or
+uvx apiosk-mcp
 ```
 
-## Paid API access
+The local package runs the x402 buying surface: it shops the wider x402
+ecosystem as well as the Apiosk catalogue, and it can hold a local wallet.
 
-Installing the MCP server is public. Some paid Apiosk routes still require a valid payment or auth mode when a tool actually calls them.
+| Tool | What it answers | Spends |
+| --- | --- | --- |
+| `apiosk` | The top ranked runnable provider, its price and required inputs | no |
+| `apiosk_connect` | Can this session buy? Which wallet, policy and limits | no |
+| `apiosk_discover` | What can perform this job, across Apiosk and x402 | no |
+| `apiosk_compare` | How candidates compare on price, latency and success rate | no |
+| `apiosk_execute` | Run the offer that was chosen, at the price shown | **yes** |
+| `apiosk_approval_status` | What happened to a purchase held by the buyer's rules | no |
+| `apiosk_plan` | What a multi-step job would take, in order, at one price | no |
+| `apiosk_execute_plan` | Start an approved plan by its token | **yes** |
+| `apiosk_job_status` | Where a running plan has got to | no |
+| `apiosk_resolve_job` | Which subject was meant, when a job stopped to ask | no |
+| `apiosk_cancel_job` | Stop dispatching further calls | no |
 
-For the local npm package, `apiosk_get_started` is the recommended entrypoint because it can save a connect string locally or create a wallet and then prove the setup with a first execute call.
+Start with `apiosk_connect`: it reports whether the session can buy and returns
+a connection link when it cannot.
 
-Common environment variables:
+## Which one
 
-- `APIOSK_PRIVATE_KEY`
-- `APIOSK_CONNECT_TOKEN`
-- `APIOSK_CONNECT_AUTHORIZATION`
-- `APIOSK_X_PAYMENT`
-
-## Related links
-
-- Hosted MCP endpoint: [https://mcp.apiosk.com/mcp](https://mcp.apiosk.com/mcp)
-- npm package: [https://www.npmjs.com/package/@apiosk/mcp](https://www.npmjs.com/package/@apiosk/mcp) (the published binary is `apiosk-mcp-server`)
-- Consumer guide: [/guides/consumers](/guides/consumers)
+| You want | Use |
+| --- | --- |
+| ChatGPT, Claude or another client to buy from the Apiosk catalogue | Hosted |
+| A local wallet, or to shop x402 resources outside Apiosk | Local package |
+| A server of your own, with no person in the loop | The [API](/api/authentication), not MCP |

@@ -1,8 +1,8 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "palm",
-  "name": "Apiosk Gateway",
-  "description": "Public integration docs for discovering, paying for, executing, and publishing APIs through the Apiosk gateway.",
+  "name": "Apiosk",
+  "description": "Buy verifiable data per call: the API, the MCP server, the app, and publishing on the x402 rail.",
   "colors": {
     "primary": "#2563eb",
     "light": "#60a5fa",
@@ -43,7 +43,7 @@
         "tab": "Overview",
         "groups": [
           {
-            "group": "Gateway",
+            "group": "Start here",
             "pages": [
               "index",
               "overview/quickstart",
@@ -52,9 +52,65 @@
               "overview/faq",
               "overview/changelog"
             ]
+          }
+        ]
+      },
+      {
+        "tab": "API",
+        "groups": [
+          {
+            "group": "Buy data",
+            "pages": [
+              "api/authentication",
+              "api/sources",
+              "api/execute",
+              "api/ask",
+              "api/runs"
+            ]
           },
           {
-            "group": "Dashboard",
+            "group": "Operating it",
+            "pages": [
+              "api/billing",
+              "api/idempotency",
+              "api/errors",
+              "api/limits"
+            ]
+          }
+        ],
+        "openapi": "openapi/apiosk-api.json"
+      },
+      {
+        "tab": "MCP",
+        "groups": [
+          {
+            "group": "Assistants",
+            "pages": [
+              "mcp/overview",
+              "guides/mcp-clients",
+              "guides/gateway-skill"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "App",
+        "groups": [
+          {
+            "group": "Your organisation",
+            "pages": [
+              "app/organisations",
+              "app/api-keys",
+              "app/connections"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Publishing",
+        "groups": [
+          {
+            "group": "Provider dashboard",
             "pages": [
               "dashboard/overview",
               "dashboard/workflow",
@@ -65,33 +121,9 @@
               "dashboard/payments-and-usage",
               "dashboard/gateway-testing"
             ]
-          }
-        ]
-      },
-      {
-        "tab": "Guides",
-        "groups": [
-          {
-            "group": "Consumers",
-            "pages": [
-              "guides/consumers",
-              "guides/bazaar-discovery",
-              "guides/mcp-clients",
-              "guides/sdk",
-              "guides/gateway-skill",
-              "guides/preflight",
-              "guides/execute",
-              "guides/execute-capabilities",
-              "guides/payment-options",
-              "guides/x402-versions",
-              "guides/multichain",
-              "guides/payment-mode-comparison",
-              "guides/errors-and-retries",
-              "guides/examples"
-            ]
           },
           {
-            "group": "Publishers",
+            "group": "Publish an API",
             "pages": [
               "guides/publishers",
               "guides/sdk-mode",
@@ -105,14 +137,9 @@
             ]
           },
           {
-            "group": "Connect",
+            "group": "Marketplace",
             "pages": [
-              "guides/connect-marketplace"
-            ]
-          },
-          {
-            "group": "Boundaries",
-            "pages": [
+              "guides/connect-marketplace",
               "guides/boundaries"
             ]
           }
@@ -136,51 +163,35 @@
         ]
       },
       {
-        "tab": "API Reference",
-        "openapi": "openapi/public-gateway.json",
+        "tab": "x402 rail",
         "groups": [
+          {
+            "group": "Buying over x402",
+            "pages": [
+              "guides/consumers",
+              "guides/bazaar-discovery",
+              "guides/sdk",
+              "guides/preflight",
+              "guides/execute",
+              "guides/execute-capabilities",
+              "guides/payment-options",
+              "guides/x402-versions",
+              "guides/multichain",
+              "guides/payment-mode-comparison",
+              "guides/errors-and-retries",
+              "guides/examples"
+            ]
+          },
           {
             "group": "Reference",
             "pages": [
               "reference/overview"
             ]
-          },
-          {
-            "group": "Discovery",
-            "pages": [
-              "GET /health",
-              "GET /types",
-              "GET /types/{listing_type}/v1",
-              "GET /v1/apis",
-              "GET /v1/apis/{slug}"
-            ]
-          },
-          {
-            "group": "Execution",
-            "pages": [
-              "GET /{api_slug}/metadata",
-              "POST /{api_slug}/execute"
-            ]
-          },
-          {
-            "group": "Publishing",
-            "pages": [
-              "POST /v1/apis/register",
-              "GET /v1/apis/mine",
-              "POST /v1/apis/{slug}",
-              "DELETE /v1/apis/{slug}",
-              "PUT /v1/apis/{slug}/endpoints/docs"
-            ]
-          },
-          {
-            "group": "Metrics",
-            "pages": [
-              "GET /v1/balance",
-              "GET /v1/usage"
-            ]
           }
-        ]
+        ],
+        "openapi": "openapi/public-gateway.json"
       }
     ]
-  }
+  },
+  "redirects": []
 }

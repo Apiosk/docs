@@ -1,0 +1,69 @@
+---
+title: "API keys"
+description: "Create, limit and revoke the keys your servers use."
+---
+
+Organisation API keys live in the app, under **Organisation → API keys**. An
+owner or an admin manages them; a key belongs to the organisation, not to the
+person who made it.
+
+## Create one
+
+| Field | What it does |
+| --- | --- |
+| **Name** | Shown in the list and in usage, for example `Nomi Production` |
+| **Expires after** | 30 to 730 days. The key stops working on that date |
+| **Per-request limit** | The most one call or one plan may cost |
+| **Monthly limit** | The most this key may spend in a calendar month (UTC) |
+| **Permissions** | Discover sources, run sources, plan with Ask, run Ask plans, read balance and usage |
+
+The secret appears **once**, right after creation:
+
+```
+apk_org_live_…
+```
+
+Copy it into your secret store then. Apiosk keeps only a hash of it and can
+never show it again. Lost a secret? Revoke the key and create another.
+
+<Warning>
+Anyone holding the secret can spend the organisation's balance up to that key's
+limits. Keep it server-side: never in a browser bundle, a mobile app or a
+public repository.
+</Warning>
+
+## What the list shows
+
+Per key: its prefix (`apk_org_live_1a2b3c4d…`), its permissions, the
+per-request limit, what it has spent this month against its monthly limit, when
+it expires, and when it was last used. A key that has never been used says so.
+
+## Limits
+
+Both ceilings are enforced twice: when a plan is approved and again when each
+call reserves its money, under a lock. Parallel calls cannot overspend between
+them.
+
+- **Per request** rejects a call whose maximum cost is too high, before paying.
+- **Monthly** counts every charge of this key this calendar month; reservations
+  count while held, refunds count for nothing.
+- **The balance** is the organisation's main balance, shared by all its keys.
+
+A refusal arrives as `402 spend_limit_exceeded`, naming which ceiling, and
+nothing is charged.
+
+## Revoke
+
+Revoking is immediate and cannot be undone. Requests with that key stop at
+once, including runs it had started but not dispatched. Other keys are
+unaffected. Revoked keys stay in the list, marked, so usage history keeps its
+name.
+
+## Good practice
+
+- **One key per environment.** Production and staging get separate keys, limits and usage lines.
+- **Rotate by overlap.** Create the new key, deploy it, then revoke the old one.
+- **Set a monthly limit you would be comfortable losing.** It is the ceiling on a mistake.
+- **Read usage per key** with `GET /v2/usage`, which is scoped to the calling key.
+
+Next: [authenticate with it](/api/authentication) and [make a call](/api/execute).

@@ -17,7 +17,7 @@ A managed agent wallet is an Apiosk-held USDC wallet on Base that pays for gatew
 
 ## What you can still do with an existing wallet
 
-- read the wallet address, spend limits, and funding state (`apiosk_list_wallets` over MCP)
+- read the wallet address, spend limits, and funding state (`apiosk_connect` over MCP)
 - fund it with USDC on Base mainnet
 - mint and rotate a connect token or connect string for it
 - let paid gateway calls settle automatically against it
@@ -30,7 +30,7 @@ A managed agent wallet is an Apiosk-held USDC wallet on Base that pays for gatew
 
 ## Alternatives while creation is unavailable
 
-- **Local wallet:** run the local stdio MCP package and create a wallet with `apiosk_wallet_create`. State is stored locally under `~/.apiosk`.
+- **Local wallet:** run the local stdio MCP package and create a wallet with `apiosk_connect`. State is stored locally under `~/.apiosk`.
 - **Raw x402:** bring your own payer, sign the `402` challenge yourself, and retry with `x-payment`. See [Payment Options](/guides/payment-options).
 
 ## Important boundary

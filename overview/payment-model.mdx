@@ -1,11 +1,36 @@
 ---
-title: "Payment Model"
-description: "Public explanation of how paid and unpaid gateway routes work without exposing gateway internals."
+title: "Payment model"
+description: "Two rails: a prepaid balance for buying data, and x402 for paying providers."
 ---
 
-# Payment Model
+# Payment model
 
-The gateway uses a simple public boundary:
+Apiosk has two payment rails, and which one you meet depends on which side you are on.
+
+## Buying data: the balance
+
+Everyone who buys data — in the app, through an [API key](/app/api-keys), or
+through the [MCP server](/mcp/overview) — spends a prepaid balance in **USD**.
+
+1. **Approve.** A price is shown first; approving it sets a ceiling.
+2. **Reserve.** Before a source is called, its cost is taken from the balance.
+3. **Run.** The source is called.
+4. **Settle.** The actual cost is charged and the rest released.
+
+A failed call is refunded; a call whose outcome is unknown stays held until it
+is reconciled, and is never charged twice. The price in the catalogue already
+includes the Apiosk fee, so the per-source costs of a run add up to its total.
+Balances are topped up in the app. See [Balance and usage](/api/billing).
+
+## Paying providers: x402
+
+Published APIs are paid per call over x402, in USDC. That is the rail below,
+and it is what a provider sees. A buyer using the balance never handles a `402`
+challenge or a wallet; Apiosk settles with the provider on their behalf.
+
+### The x402 boundary
+
+For callers paying on the x402 rail directly:
 
 1. The client requests a route.
 2. If the route is paid and no valid proof is attached, the gateway returns `HTTP 402`.

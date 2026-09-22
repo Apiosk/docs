@@ -1,0 +1,137 @@
+---
+title: "Ask"
+description: "A question in, a priced plan across sources out, and results when you run it."
+---
+
+Use Ask when you do not know which source answers the question, or when the
+answer needs several. Apiosk reads the question, matches sources and
+operations, prices a plan, and runs it on your approval.
+
+Ask and [direct calls](/api/execute) use the same source catalogue, the same
+prices and the same ledger. There are no Ask-only sources.
+
+## Plan a question
+
+```http
+POST /v2/ask
+```
+
+Requires `ask:create`.
+
+```bash
+curl https://gateway.apiosk.com/v2/ask \
+  -H "Authorization: Bearer $APIOSK_KEY" \
+  -H "Idempotency-Key: intent-signals-2026-09-22" \
+  -H "Content-Type: application/json" \
+  -d '{"question":"Find the registered address and the latest filed accounts for Mollie B.V.","limit":5}'
+```
+
+| Field | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `question` | string, 1–4000 chars | required | The question, in the user's own words |
+| `execution_mode` | `"plan"` or `"auto"` | `"plan"` | `auto` runs the plan straight away when it fits `max_spend` |
+| `max_spend` | decimal USD | none | Required with `auto`; the ceiling for the whole plan |
+| `limit` | integer 1–50 | none | Cap the number of result documents returned |
+| `wait_seconds` | integer 0–55 | 25 | With `auto`, how long to wait before answering `202` |
+
+```json
+{
+  "id": "5c1f…",
+  "status": "requires_approval",
+  "question": "Find the registered address and the latest filed accounts for Mollie B.V.",
+  "plan": {
+    "quote_ref": "9ad2…",
+    "expires_at": "2026-09-22T18:40:00Z",
+    "steps": [
+      { "source_id": "kvk", "operation": "company_registry.search", "name": "Company search",
+        "conditional": false,
+        "estimated_cost": { "amount": 0.023, "amount_micro_usd": "23000", "currency": "USD" } },
+      { "source_id": "kvk", "operation": "company_registry.annual-accounts", "name": "Annual accounts",
+        "conditional": false,
+        "estimated_cost": { "amount": 0.115, "amount_micro_usd": "115000", "currency": "USD" } }
+    ],
+    "estimated_total": { "amount": 0.138, "amount_micro_usd": "138000", "currency": "USD" }
+  },
+  "usage": { "sources": [], "cost": { "amount": 0, "amount_micro_usd": "0", "currency": "USD" } },
+  "errors": []
+}
+```
+
+Planning is free. `estimated_total` is the **maximum** the run may cost; you are
+charged what the sources actually cost, which can be less.
+
+### Run it later
+
+```http
+POST /v2/asks/{id}/run
+```
+
+Requires `ask:execute`.
+
+```bash
+curl https://gateway.apiosk.com/v2/asks/5c1f…/run \
+  -H "Authorization: Bearer $APIOSK_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"max_spend":1.00,"limit":5}'
+```
+
+Running an ask twice returns the same run. It never starts a second purchase.
+
+## Run it immediately
+
+```json
+{
+  "question": "Find the registered address and the latest filed accounts for Mollie B.V.",
+  "execution_mode": "auto",
+  "max_spend": 1.00,
+  "limit": 5
+}
+```
+
+With `auto`, Apiosk runs the plan without a second call, but only when all four
+hold: the plan's maximum cost is within `max_spend`, within the key's
+per-request limit, within what the key may still spend this month, and within
+the organisation's balance.
+
+If the plan costs more than `max_spend`, you get the plan back, unrun and
+unbilled:
+
+```json
+{
+  "id": "5c1f…",
+  "status": "requires_approval",
+  "approval_required_reason": {
+    "code": "max_spend",
+    "message": "The plan's maximum cost is above max_spend, so it was not run. Nothing was charged."
+  },
+  "plan": { "estimated_total": { "amount": 1.44, "amount_micro_usd": "1440000", "currency": "USD" } }
+}
+```
+
+## Statuses
+
+| `status` | Meaning | What to do |
+| --- | --- | --- |
+| `requires_approval` | A priced plan is ready | `POST /v2/asks/{id}/run` |
+| `running` | The plan is executing (HTTP `202`) | Poll `GET /v2/runs/{id}` |
+| `completed` | Every step finished | Read `answer`, `results`, `usage` |
+| `partial` | Some steps failed or were skipped | Read `errors` beside the results you did get |
+| `needs_input` | The question is missing something | `needs_input` lists the fields with their schemas |
+| `needs_selection` | Several entities match | `candidates` lists them; ask again with an identifier |
+| `unsupported` | No source can answer this | Nothing was charged |
+| `failed` | The run failed (HTTP `502`) | `error` and `errors` say why; see `usage` for what was charged |
+
+## Status codes
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| 200 | — | A plan, or a finished run |
+| 202 | — | Still running after `wait_seconds` |
+| 400 | `invalid_request` | `question` empty or over 4000 characters, or `auto` without `max_spend` |
+| 401 | `invalid_api_key` | See [Authentication](/api/authentication) |
+| 402 | `insufficient_balance` / `spend_limit_exceeded` | Nothing was charged |
+| 403 | `insufficient_scope` | `ask:create`, and `ask:execute` for running |
+| 409 | `idempotency_conflict` / `plan_expired` / `plan_not_ready` | Ask again for a fresh plan |
+| 422 | `unsupported` | No source can answer the question |
+| 429 | `rate_limit_exceeded` | Wait a minute, then retry with the same key |
+| 502 | `source_error` | The run failed; read `usage` for what was charged |

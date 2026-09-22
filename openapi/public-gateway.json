@@ -1,9 +1,9 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Apiosk Gateway Public API",
+    "title": "Apiosk x402 Gateway (v1)",
     "version": "1.1.0",
-    "description": "Sanitized public API reference for the Apiosk gateway. This document covers the integration contract for discovery, metadata, execution, payments, and community API publishing without exposing internal gateway implementation details."
+    "description": "Sanitized public API reference for the Apiosk gateway. This document covers the integration contract for discovery, metadata, execution, payments, and community API publishing without exposing internal gateway implementation details.\n\nThe x402 rail: listing discovery, per-call execution against a published API, and publishing. Buying data with an organisation API key is the v2 API, documented under API."
   },
   "servers": [
     {
@@ -669,7 +669,9 @@
               }
             }
           }
-        }
+        },
+        "deprecated": true,
+        "description": ". Deprecated: this wallet-keyed endpoint returns zeros and is no longer maintained. Use GET /v2/balance and GET /v2/usage with an organisation API key instead."
       }
     },
     "/v1/usage": {
@@ -725,7 +727,9 @@
               }
             }
           }
-        }
+        },
+        "deprecated": true,
+        "description": ". Deprecated: this wallet-keyed endpoint returns zeros and is no longer maintained. Use GET /v2/balance and GET /v2/usage with an organisation API key instead."
       }
     },
     "/{api_slug}/metadata": {

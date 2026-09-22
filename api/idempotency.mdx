@@ -1,0 +1,59 @@
+---
+title: "Idempotency"
+description: "Retry a paid call safely: the same key pays once."
+---
+
+A timeout is not an answer. Send an `Idempotency-Key` on every paid call, and a
+retry returns the first result instead of buying it again.
+
+```http
+Idempotency-Key: nomi-request-983472
+```
+
+1–255 visible ASCII characters. Use one value per intent — a request id from
+your own system is ideal.
+
+## What it guarantees
+
+| You send | Apiosk does |
+| --- | --- |
+| The same key, the same body | Returns the same run. Pays at most once. |
+| The same key, a different body | `409 idempotency_conflict`. Nothing is charged. |
+| No key | Every call is a new request, and a retry is a second purchase. |
+
+Keys are scoped to your API key and the endpoint, so two of your keys, or two
+endpoints, can use the same string without colliding.
+
+## Where it applies
+
+| Endpoint | Behaviour |
+| --- | --- |
+| `POST /v1/execute/{source}/{operation}` | Honours `Idempotency-Key` |
+| `POST /v2/sources/{source_id}/run` | Honours `Idempotency-Key` |
+| `POST /v2/ask` | Honours `Idempotency-Key`; a retry returns the same plan or run |
+| `POST /v2/asks/{id}/run` | Idempotent by itself — an ask runs once, key or no key |
+
+## Retrying in practice
+
+```bash
+key="nomi-request-983472"
+curl https://gateway.apiosk.com/v1/execute/kvk/company_registry.search \
+  -H "Authorization: Bearer $APIOSK_KEY" \
+  -H "Idempotency-Key: $key" \
+  -H "Content-Type: application/json" \
+  -d '{"company.name":"Mollie B.V."}'
+```
+
+If that call times out on your side, send it again **unchanged**. You get the
+same run id, the same result and the same single charge.
+
+<Note>
+While the first request is still running, a retry answers `409
+request_in_progress` with a `retry_after_ms`. Wait that long and retry; it is
+not an error, and nothing was charged twice.
+</Note>
+
+## Runs already in flight
+
+A run that is still executing answers `202` with its id. Polling
+`GET /v2/runs/{id}` is always free and never starts anything new.

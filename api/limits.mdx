@@ -1,0 +1,46 @@
+---
+title: "Limits"
+description: "What bounds a key: money, rate and lifetime."
+---
+
+## Spending
+
+| Limit | Set where | Checked |
+| --- | --- | --- |
+| **Per request** | On the key, in the app | Against the maximum cost of a whole call or plan |
+| **Monthly** | On the key, in the app | Against everything the key spent this calendar month (UTC) |
+| **`max_spend`** | Per request, by you | Against the plan's maximum cost, before anything is paid |
+| **Balance** | Organisation's main balance | Before each source call is made |
+
+Limits are checked twice: when a plan is approved, and again under a lock when
+each call reserves its money. Parallel requests cannot overspend a limit
+between them — twenty calls at once queue on the same ledger lock.
+
+Reservations count against the monthly limit while they are held. A refunded
+call counts for nothing.
+
+The month resets on the first of the calendar month, UTC. `GET /v2/balance`
+returns `month_spent`, `month_remaining` and `month_start`.
+
+## Rate
+
+- **60 requests per minute per organisation.** All keys of one organisation share it.
+- **A bounded number of requests execute at once.** Over that, Apiosk answers
+  `429 rate_limit_exceeded`; wait and retry with the same `Idempotency-Key`.
+
+## Keys
+
+- **25 active keys per organisation.** Revoke one to create another.
+- **Expiry between 1 and 730 days**, chosen at creation. An expired key answers
+  `401 api_key_expired`; nothing else changes.
+
+## Waiting
+
+`wait_seconds` is capped at 55 seconds, with a default of 25. A run that is
+still going answers `202` with its id; poll `GET /v2/runs/{id}`, which is free.
+
+## Sizes
+
+- Request bodies up to 64 KB.
+- `limit` on results: 1 to 50 documents.
+- `Idempotency-Key`: 1 to 255 visible ASCII characters.

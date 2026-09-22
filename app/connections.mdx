@@ -1,0 +1,51 @@
+---
+title: "Connections"
+description: "How an assistant comes to hold a credential that can spend, and what bounds it."
+---
+
+A connection lets an AI client — ChatGPT, Claude, an agent runtime — act for one
+person's Apiosk account, within limits that person set.
+
+The rule behind the whole flow: **a person is the authority on money; software
+is the authority on nothing.** The assistant does the typing; the person makes
+the decision.
+
+## The flow
+
+1. **Invitation.** In the app, under **Integrations**, the person starts a
+   connection. They get a short invitation to paste into the assistant.
+2. **Intent.** The assistant registers what it is and what it wants to be
+   called, and receives a verification link to hand back.
+3. **Approval.** The person opens that link, signs in, and sets the two
+   ceilings: per request and per day. A short code confirms the approval.
+4. **Tokens.** The assistant exchanges the code for its own access and refresh
+   tokens. The secret itself never passes through the assistant's prompt.
+
+Connecting through a client that supports OAuth — the [MCP server](/mcp/overview)
+— collapses steps 1 to 4 into the client's own consent screen.
+
+## What a connection may do
+
+| | |
+| --- | --- |
+| **Spends from** | The person's own balance |
+| **Per-request ceiling** | Set at approval, changeable in the app |
+| **Daily ceiling** | Rolling 24 hours, set at approval |
+| **Revocation** | Immediate, from **Integrations**; every token dies with it |
+| **Scope** | Optionally bound to one workspace, so it spends that workspace's budget |
+
+Each call is checked against the ceilings at the moment it reserves money, so a
+burst of parallel calls cannot slip past them.
+
+## Connections or API keys?
+
+| | Connection | [Organisation API key](/app/api-keys) |
+| --- | --- | --- |
+| Belongs to | A person | An organisation |
+| Created by | Approving a client | An owner or admin, in the app |
+| Spends | That person's balance | The organisation's main balance |
+| Limits | Per request, per day | Per request, per month |
+| Used by | ChatGPT, Claude, agent clients | Your own servers, over HTTPS |
+
+Use a connection when a person is in the loop. Use an API key when a server
+runs on its own.
