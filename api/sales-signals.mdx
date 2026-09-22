@@ -66,7 +66,7 @@ curl https://gateway.apiosk.com/v1/execute/kvk-dutch-business-register/company_r
 
 curl https://gateway.apiosk.com/v1/execute/kvk-dutch-business-register/company.registry-profile \
   -H "Authorization: Bearer $APIOSK_KEY" -H "Content-Type: application/json" \
-  -d '{"company_registry.kvknummer":"30197151"}'
+  -d '{"company_registry.kvknummer":"30204462"}'
 ```
 
 Recent news about a company:
@@ -102,9 +102,10 @@ Each entry in `results`, and the top-level `metadata` of a single-result call:
     "source_name": "KVK Business Register",
     "operation": "company.registry-profile",
     "retrieved_at": "2026-09-23T09:14:07Z",
-    "source_url": "https://…",
+    "source_url": "https://developers.kvk.nl/nl/documentation",
+    "links": ["https://api.kvk.nl/api/v1/basisprofielen/30204462"],
     "subject": "Mollie B.V.",
-    "identifiers": { "company_registry.kvknummer": "30197151" },
+    "identifiers": { "company_registry.kvknummer": "30204462" },
     "cost": { "amount": 0.0761, "amount_micro_usd": "76130", "currency": "USD" },
     "receipt_ref": "…"
   }
@@ -116,7 +117,8 @@ Each entry in `results`, and the top-level `metadata` of a single-result call:
 | `source_id`, `source_name` | Which source produced the document |
 | `operation` | Which of its operations |
 | `retrieved_at` | When Apiosk fetched it |
-| `source_url` | The source's own address for this data, when it publishes one |
+| `source_url` | The source's own page: its documentation or dataset page |
+| `links` | Up to ten links the source put in this record: a tender announcement, an article, a register profile |
 | `subject` | Who or what the result is about |
 | `identifiers` | Registry numbers found in or used for the result: KVK, RSIN, SIREN, LEI, VAT and similar |
 | `cost` | What this result was charged |

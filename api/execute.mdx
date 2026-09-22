@@ -80,12 +80,12 @@ Each input may be named three ways, so you can use whichever you have:
     "estimated_total": { "amount": 0.023, "amount_micro_usd": "23000", "currency": "USD" }
   },
   "answer": null,
-  "data": { "companies": [{ "kvkNummer": "30197151", "naam": "Mollie B.V." }] },
+  "data": { "companies": [{ "kvkNummer": "30204462", "naam": "Mollie B.V." }] },
   "results": [
     {
       "result_ref": "a72e…",
       "source": { "provider": "kvk", "name": "KVK" },
-      "data": { "companies": [{ "kvkNummer": "30197151", "naam": "Mollie B.V." }] }
+      "data": { "companies": [{ "kvkNummer": "30204462", "naam": "Mollie B.V." }] }
     }
   ],
   "usage": {
@@ -107,8 +107,8 @@ direct call normally does. The same document is in `results[0].data`.
 </ResponseField>
 
 <ResponseField name="metadata" type="object">
-Where the result came from: source, operation, retrieval time, source link,
-subject, identifiers such as a KVK number, and cost. Present on every entry of
+Where the result came from: source, operation, retrieval time, the source's
+page, the record's own links, subject, identifiers such as a KVK number, and cost. Present on every entry of
 `results`, and at the top level when there is one. See
 [Sales signals](/api/sales-signals#what-every-result-carries).
 </ResponseField>
