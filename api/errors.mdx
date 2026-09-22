@@ -37,6 +37,7 @@ reading a log. Extra fields depend on the code and are listed below.
 | 404 | `operation_not_found` | `operations` | The source has no such operation |
 | 404 | `run_not_found` | — | No run with this id belongs to this key |
 | 409 | `idempotency_conflict` | — | Same `Idempotency-Key`, different body |
+| 409 | `ambiguous_operation` | `sources` | Two sources in a group offer this operation; call one by id |
 | 409 | `request_in_progress` | `retry_after_ms` | The first request with this key is still running |
 | 409 | `plan_not_ready` | — | The ask has no priced plan yet |
 | 409 | `plan_expired` | — | The plan's price expired; ask again |

@@ -114,6 +114,16 @@ Each field with whether it is required and the JSON schema its value must match.
 Values are validated before anything is priced.
 </ResponseField>
 
+<ResponseField name="operations[].variants" type="array">
+Present when the operation has several variants, each with its own inputs and
+price. A call runs the variant whose inputs it supplies.
+</ResponseField>
+
+<ResponseField name="operations[].source_id" type="string">
+The source that runs the operation. For a provider that groups several sources,
+such as `pulsenetwork`, this names the member.
+</ResponseField>
+
 <ResponseField name="operations[].output" type="array">
 What the operation produces. An operation whose output is another operation's
 required input is how a plan gets built; see [Ask](/api/ask).

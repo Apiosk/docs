@@ -37,8 +37,14 @@ The `Idempotency-Key` header is optional and strongly recommended; see
 
 ### What the path accepts
 
-- **Source**: its id (`kvk`) or its name (`KVK`), case-insensitive.
+- **Source**: its id, its name, or a provider that groups several sources
+  (`pulsenetwork`), case-insensitive. For a group, the call runs on the member
+  that offers the operation; if two members offer it, you get `409
+  ambiguous_operation` naming them, and call one by its own id.
 - **Operation**: its capability (`company_registry.search`), its endpoint id, or its name.
+- **Variants**: some operations have several variants with different inputs —
+  a KVK lookup by KVK number or by branch number. The call runs the variant
+  whose inputs you supply; if none fits, `422` lists what each variant needs.
 
 ### What the body accepts
 
@@ -100,6 +106,13 @@ The source's own document, present when the run produced exactly one — which a
 direct call normally does. The same document is in `results[0].data`.
 </ResponseField>
 
+<ResponseField name="metadata" type="object">
+Where the result came from: source, operation, retrieval time, source link,
+subject, identifiers such as a KVK number, and cost. Present on every entry of
+`results`, and at the top level when there is one. See
+[Sales signals](/api/sales-signals#what-every-result-carries).
+</ResponseField>
+
 <ResponseField name="usage.cost" type="object">
 What the ledger actually charged. It equals the sum of `usage.sources[].cost`.
 </ResponseField>
@@ -127,6 +140,7 @@ The organisation's balance after this run.
 | 404 | `source_not_found` | No purchasable source has this id or name |
 | 404 | `operation_not_found` | The source has no such operation; `operations` lists what it has |
 | 409 | `idempotency_conflict` | The same key with a different body |
+| 409 | `ambiguous_operation` | Two sources in a group offer this operation; `sources` names them |
 | 422 | `invalid_source_input` | A field is unknown, missing, or does not match its schema |
 | 429 | `rate_limit_exceeded` | Wait, then retry with the same `Idempotency-Key` |
 | 502 | `source_error` | The source could not complete the run |

@@ -1,0 +1,122 @@
+---
+title: "Sales signals"
+description: "Tenders, funding, news and company-register signals for a sales agent, with the exact calls."
+---
+
+This page maps common buying-intent signals to the sources that can deliver
+them today. Every call below works with an organisation API key, direct or
+through Ask, and every result carries a [metadata block](#what-every-result-carries).
+
+Prices change with providers; read the current price of any operation with
+`GET /v2/sources/{source_id}` before you run it.
+
+## Signals and sources
+
+| Signal | Source id | Operation | Input |
+| --- | --- | --- | --- |
+| New tenders by keyword (NL) | `tenderned` | `company_intel.search` | `search`, optional CPV codes and publication dates |
+| Tenders mentioning a company (NL) | `tenderned` | `procurement.company-name-mentions` | `company.nl.registered_name` |
+| Tenders linked to an RSIN (NL) | `tenderned` | `procurement.rsin-mentions` | `company.nl.rsin` |
+| EU tender notices for a KVK number | `ted` | `procurement.ted-kvk-notices` | `company_registry.kvknummer` |
+| EU funding and tender calls | `eu-funding-tenders` | `eu_funding.calls.search` | `q` |
+| Public contracts expiring soon (FR) | `sirenic` | `company.sirenic-marches-expirations` | optional CPV, department, window in months |
+| A company's public contracts (FR) | `sirenic` | `company.sirenic-entreprise-siren-marches-publics` | `company.registration.fr.siren` |
+| Company news by keyword | `reuters` | `news.reuters-search` | `news.reuters_search_query` |
+| Latest business news | `reuters` | `news.reuters-section-business` | none |
+| Web mentions (funding, hiring, expansion) | `exa` | `web.search` | `web.query` |
+| Web answer with sources | `linkup` | `web.linkup-answer` | `web.source_search_query` |
+| Subsidy schemes (NL) | `rvo` | `subsidy.scheme.first-page-search` | `subsidy.discovery.keyword` |
+| Find a company in the KVK register | `kvk-dutch-business-register` | `company_registry.search` | `company.name` |
+| KVK profile | `kvk-dutch-business-register` | `company.registry-profile` | `company_registry.kvknummer` |
+| Filed annual accounts | `kvk-dutch-business-register` | `company.financial-statements` | `company_registry.kvknummer` |
+| Company changes (FR) | `sirenic` | `company.sirenic-entreprise-siren-changements` | `company.registration.fr.siren`, `depuis` |
+
+<Note>
+**Funding rounds.** Apiosk does not hold a dedicated venture-funding database
+today. Funding announcements are found through news and web search
+(`reuters`, `exa`, `linkup`), and public funding through `eu-funding-tenders`
+and `rvo`. Ask plans across these for you.
+</Note>
+
+<Note>
+**Pulse Network** publishes several sources under one provider. Its id,
+`pulsenetwork`, works wherever a source id does: `GET /v2/sources/pulsenetwork`
+lists every Pulse operation with the source that runs it, and a call to
+`/v1/execute/pulsenetwork/{operation}` runs on the member that offers it.
+</Note>
+
+## Direct calls
+
+New Dutch tenders about cybersecurity:
+
+```bash
+curl https://gateway.apiosk.com/v1/execute/tenderned/company_intel.search \
+  -H "Authorization: Bearer $APIOSK_KEY" \
+  -H "Idempotency-Key: nomi-tenders-2026-09-23" \
+  -H "Content-Type: application/json" \
+  -d '{"search":"cybersecurity"}'
+```
+
+From a company name to its KVK profile, in two calls:
+
+```bash
+curl https://gateway.apiosk.com/v1/execute/kvk-dutch-business-register/company_registry.search \
+  -H "Authorization: Bearer $APIOSK_KEY" -H "Content-Type: application/json" \
+  -d '{"company.name":"Mollie B.V."}'
+
+curl https://gateway.apiosk.com/v1/execute/kvk-dutch-business-register/company.registry-profile \
+  -H "Authorization: Bearer $APIOSK_KEY" -H "Content-Type: application/json" \
+  -d '{"company_registry.kvknummer":"30197151"}'
+```
+
+Recent news about a company:
+
+```bash
+curl https://gateway.apiosk.com/v1/execute/reuters/news.reuters-search \
+  -H "Authorization: Bearer $APIOSK_KEY" -H "Content-Type: application/json" \
+  -d '{"news.reuters_search_query":"Mollie funding"}'
+```
+
+## Let Ask combine them
+
+When the signal needs several sources, ask for it and let Apiosk plan:
+
+```bash
+curl https://gateway.apiosk.com/v2/ask \
+  -H "Authorization: Bearer $APIOSK_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"question":"Recent tenders, news and KVK details for Dutch cybersecurity companies","execution_mode":"auto","max_spend":2.00,"limit":10}'
+```
+
+The Ask page in the app, a connected chatbot and this call read the question
+the same way and produce the same plan, sources and price.
+
+## What every result carries
+
+Each entry in `results`, and the top-level `metadata` of a single-result call:
+
+```json
+{
+  "metadata": {
+    "source_id": "kvk-dutch-business-register",
+    "source_name": "KVK Business Register",
+    "operation": "company.registry-profile",
+    "retrieved_at": "2026-09-23T09:14:07Z",
+    "source_url": "https://…",
+    "subject": "Mollie B.V.",
+    "identifiers": { "company_registry.kvknummer": "30197151" },
+    "cost": { "amount": 0.0761, "amount_micro_usd": "76130", "currency": "USD" },
+    "receipt_ref": "…"
+  }
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `source_id`, `source_name` | Which source produced the document |
+| `operation` | Which of its operations |
+| `retrieved_at` | When Apiosk fetched it |
+| `source_url` | The source's own address for this data, when it publishes one |
+| `subject` | Who or what the result is about |
+| `identifiers` | Registry numbers found in or used for the result: KVK, RSIN, SIREN, LEI, VAT and similar |
+| `cost` | What this result was charged |
