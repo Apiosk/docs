@@ -7,7 +7,8 @@ Buyer API refusals use the error shape below. The shared source-list route
 can return the Gateway v2 envelope with an <code>errors</code> array for
 a request without a key or with an invalid query. Failed runs return the
 run object with an embedded <code>error</code> and <code>usage</code>, so
-you can see what was charged. Provider errors never reach you raw.
+you can see what was charged. Read the run errors and usage together; a
+provider failure does not by itself mean the whole run was free.
 
 ```json
 {

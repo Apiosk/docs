@@ -36,8 +36,11 @@ returns `month_spent`, `month_remaining` and `month_start`.
 
 ## Waiting
 
-`wait_seconds` is capped at 55 seconds, with a default of 25. A run that is
-still going answers `202` with its id; poll `GET /v2/runs/{id}`, which is free.
+For a direct call, an automatic Ask and a plan run, <code>wait_seconds</code>
+defaults to 25 and is capped at 55. A run still executing answers HTTP 202
+with its id. A status read at <code>GET /v2/runs/{id}</code> returns
+immediately by default; pass <code>wait_seconds</code> if you want it to
+wait. Status reads are free.
 
 ## Sizes
 

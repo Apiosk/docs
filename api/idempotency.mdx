@@ -21,8 +21,10 @@ your own system is ideal.
 | The same key, a different body | `409 idempotency_conflict`. Nothing is charged. |
 | No key | Every call is a new request, and a retry is a second purchase. |
 
-Keys are scoped to your API key and the endpoint, so two of your keys, or two
-endpoints, can use the same string without colliding.
+Keys are scoped to the calling API key and the logical operation. Two keys,
+or two different source operations, can use the same string without
+colliding. The v1 and v2 direct-call path aliases identify the same logical
+operation.
 
 ## Where it applies
 
