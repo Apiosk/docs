@@ -4,13 +4,14 @@
   "name": "Apiosk",
   "description": "Buy verifiable data per call: the API, the MCP server, the app, and publishing on the x402 rail.",
   "colors": {
-    "primary": "#6349db",
-    "light": "#c3a0ff",
-    "dark": "#4931ad"
+    "primary": "#8a4ef7",
+    "light": "#b39bff",
+    "dark": "#6d28d9"
   },
   "logo": {
-    "light": "/images/logo-light.svg",
-    "dark": "/images/logo-dark.svg"
+    "light": "/images/logo-light.png",
+    "dark": "/images/logo-dark.png",
+    "href": "https://apiosk.com"
   },
   "favicon": "/images/favicon.svg",
   "navbar": {
@@ -199,5 +200,18 @@
       }
     ]
   },
-  "redirects": []
+  "redirects": [],
+  "appearance": {
+    "default": "light",
+    "strict": true
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "background": {
+    "color": {
+      "light": "#ffffff",
+      "dark": "#0b0b0f"
+    }
+  }
 }

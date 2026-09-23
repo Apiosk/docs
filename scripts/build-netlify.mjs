@@ -201,8 +201,8 @@ rmSync(distDir, { recursive: true, force: true });
 ensureDir(distDir);
 
 copyIfPresent(path.join(imagesDir, "favicon.svg"), path.join(distDir, "images", "favicon.svg"));
-copyIfPresent(path.join(imagesDir, "logo-light.svg"), path.join(distDir, "images", "logo-light.svg"));
-copyIfPresent(path.join(imagesDir, "logo-dark.svg"), path.join(distDir, "images", "logo-dark.svg"));
+copyIfPresent(path.join(imagesDir, "logo-light.png"), path.join(distDir, "images", "logo-light.png"));
+copyIfPresent(path.join(imagesDir, "logo-dark.png"), path.join(distDir, "images", "logo-dark.png"));
 
 const mintlifySiteUrl = normalizeUrl(process.env.APIO_DOCS_PROXY_TARGET);
 
