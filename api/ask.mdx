@@ -116,7 +116,7 @@ unbilled:
 | `running` | The plan is executing (HTTP `202`) | Poll `GET /v2/runs/{id}` |
 | `completed` | Every step finished | Read `answer`, `results`, `usage` |
 | `partial` | Some steps failed or were skipped | Read `errors` beside the results you did get |
-| `needs_input` | The question is missing something | `needs_input` lists the fields with their schemas |
+| `needs_input` | The question is missing something | `needs_input` lists the fields with their schemas; a clarifying question is in `message` |
 | `needs_selection` | Several entities match | `candidates` lists them; ask again with an identifier |
 | `unsupported` | No source can answer this | Nothing was charged |
 | `failed` | The run failed (HTTP `502`) | `error` and `errors` say why; see `usage` for what was charged |
