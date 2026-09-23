@@ -4,9 +4,9 @@
   "name": "Apiosk",
   "description": "Buy verifiable data per call: the API, the MCP server, the app, and publishing on the x402 rail.",
   "colors": {
-    "primary": "#2563eb",
-    "light": "#60a5fa",
-    "dark": "#0f172a"
+    "primary": "#6349db",
+    "light": "#c3a0ff",
+    "dark": "#4931ad"
   },
   "logo": {
     "light": "/images/logo-light.svg",
