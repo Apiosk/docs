@@ -281,7 +281,7 @@
     },
     {
       "source": "/api-reference/discovery/health",
-      "destination": "/overview/quickstart"
+      "destination": "/api-reference/gateway-health"
     },
     {
       "source": "/api-reference/discovery/list-apis",
