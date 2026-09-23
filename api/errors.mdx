@@ -31,6 +31,7 @@ reading a log. Extra fields depend on the code and are listed below.
 | 400 | `invalid_request` | — | Malformed body, `max_spend`, `limit` or `Idempotency-Key` |
 | 400 | <code>invalid_query</code> | — | Invalid directory or endpoint-index filter |
 | 400 | `invalid_workspace` | — | Organisation keys do not take a workspace header |
+| 400 | `invalid_continuation_state` | — | Copy the signed continuation state unchanged from the run |
 | 401 | `invalid_api_key` | — | Missing or unknown key |
 | 401 | `api_key_expired` | — | Past its expiry date; create a new key |
 | 401 | `api_key_revoked` | — | Revoked in the app |
@@ -48,8 +49,10 @@ reading a log. Extra fields depend on the code and are listed below.
 | 409 | `plan_not_ready` | — | The ask has no priced plan yet |
 | 409 | `plan_expired` | — | The plan's price expired; ask again |
 | 409 | `plan_changed` | — | The plan changed while it was being approved |
+| 409 | `continuation_changed` | — | Read the run and review its current continuation; do not repeat a paid Ask |
 | 409 | `run_cancelled` | — | The run was cancelled and is not restarted |
 | 422 | `invalid_source_input` | `field`, `expected`, `missing`, `schema` | An input is unknown, missing or malformed |
+| 422 | `invalid_continuation_input` | — | Use an offered candidate or a value matching the action schema |
 | 422 | `unsupported` | — | No source can answer this question |
 | 429 | <code>busy</code> | — | Shared directory concurrency limit; retry shortly |
 | 429 | `rate_limit_exceeded` | — | Too many requests; wait and retry with the same key |
@@ -79,5 +82,6 @@ reading a log. Extra fields depend on the code and are listed below.
 | `rate_limit_exceeded`, `service_unavailable`, `source_unavailable`, `source_timeout` | Yes, with the same `Idempotency-Key` |
 | `request_in_progress` | Yes, after `retry_after_ms` |
 | `approval_unconfirmed` | Read the run first; do not start a new request |
+| `continuation_changed` | Read the run, then use its current action/state and a new key if input is still needed |
 | `insufficient_balance`, `spend_limit_exceeded` | Only after topping up or raising the limit |
 | `invalid_source_input`, `insufficient_scope`, `idempotency_conflict` | No; fix the request |

@@ -22,6 +22,494 @@
         "scheme": "bearer",
         "description": "An organisation API key: Authorization: Bearer apk_org_live_…"
       }
+    },
+    "schemas": {
+      "ContinuationState": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Signed snapshot returned by this run. Copy unchanged.",
+        "required": [
+          "schema_version",
+          "state_ref",
+          "revision",
+          "expires_at",
+          "focus",
+          "state_token"
+        ],
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "enum": [
+              "2"
+            ]
+          },
+          "state_ref": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "focus": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "entity_refs",
+              "goal_refs"
+            ],
+            "properties": {
+              "entity_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "goal_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "state_token": {
+            "type": "string"
+          }
+        }
+      },
+      "Continuation": {
+        "type": "object",
+        "required": [
+          "state",
+          "actions"
+        ],
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/ContinuationState"
+          },
+          "actions": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "action_id",
+                "kind",
+                "label",
+                "requires_authorization",
+                "input_schema"
+              ],
+              "properties": {
+                "action_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "select_entity",
+                    "supply_input"
+                  ]
+                },
+                "label": {
+                  "type": "string"
+                },
+                "requires_authorization": {
+                  "type": "boolean",
+                  "const": false
+                },
+                "input_schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "BuyerRun": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "requires_approval",
+              "running",
+              "completed",
+              "partial",
+              "needs_input",
+              "needs_selection",
+              "unsupported",
+              "cancelled",
+              "failed"
+            ]
+          },
+          "question": {
+            "type": "string"
+          },
+          "plan": {
+            "type": "object",
+            "properties": {
+              "quote_ref": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expires_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "steps": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "source_id": {
+                      "type": "string",
+                      "example": "kvk-dutch-business-register"
+                    },
+                    "operation": {
+                      "type": "string",
+                      "example": "company_registry.search"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "conditional": {
+                      "type": "boolean"
+                    },
+                    "estimated_cost": {
+                      "type": "object",
+                      "properties": {
+                        "amount": {
+                          "type": "number",
+                          "example": 0.023
+                        },
+                        "amount_micro_usd": {
+                          "type": "string",
+                          "example": "23000"
+                        },
+                        "currency": {
+                          "type": "string",
+                          "example": "USD"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "estimated_total": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "example": 0.023
+                  },
+                  "amount_micro_usd": {
+                    "type": "string",
+                    "example": "23000"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "example": "USD"
+                  }
+                }
+              }
+            }
+          },
+          "answer": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Apiosk's reading of the results, with evidence pointers. Null for a direct call."
+          },
+          "data": {
+            "type": "object",
+            "description": "The source document, when the run produced exactly one."
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "result_ref": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "provider": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "data": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object",
+            "properties": {
+              "sources": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "source_id": {
+                      "type": "string"
+                    },
+                    "operation": {
+                      "type": "string"
+                    },
+                    "calls": {
+                      "type": "integer"
+                    },
+                    "cost": {
+                      "type": "object",
+                      "properties": {
+                        "amount": {
+                          "type": "number",
+                          "example": 0.023
+                        },
+                        "amount_micro_usd": {
+                          "type": "string",
+                          "example": "23000"
+                        },
+                        "currency": {
+                          "type": "string",
+                          "example": "USD"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "cost": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "example": 0.023
+                  },
+                  "amount_micro_usd": {
+                    "type": "string",
+                    "example": "23000"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "example": "USD"
+                  }
+                }
+              },
+              "held": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "example": 0.023
+                  },
+                  "amount_micro_usd": {
+                    "type": "string",
+                    "example": "23000"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "example": "USD"
+                  }
+                }
+              }
+            }
+          },
+          "balance": {
+            "type": "object",
+            "properties": {
+              "remaining": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "example": 0.023
+                  },
+                  "amount_micro_usd": {
+                    "type": "string",
+                    "example": "23000"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "example": "USD"
+                  }
+                }
+              }
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "retry_after_ms": {
+            "type": "integer"
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Natural-language clarification for needs_input."
+          },
+          "needs_input": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string"
+                },
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "candidates": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object"
+            }
+          },
+          "approval_required_reason": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Attribution for a single result, when present."
+          },
+          "continuation": {
+            "$ref": "#/components/schemas/Continuation"
+          }
+        }
+      },
+      "BuyerError": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "WorkflowInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "slug",
+          "input"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "description": "Workflow slug from GET /v2/ask/workflows.",
+            "example": "european-company-dossier"
+          },
+          "input": {
+            "type": "object",
+            "additionalProperties": true,
+            "example": {
+              "name": "Mollie B.V.",
+              "country": "NL",
+              "registration": "30204462"
+            }
+          }
+        }
+      },
+      "WorkflowCountryCoverage": {
+        "type": "object",
+        "required": [
+          "country",
+          "identity",
+          "screening",
+          "filings",
+          "procurement",
+          "available"
+        ],
+        "properties": {
+          "country": {
+            "type": "string"
+          },
+          "identity": {
+            "type": "string"
+          },
+          "screening": {
+            "type": "string"
+          },
+          "filings": {
+            "type": "string"
+          },
+          "procurement": {
+            "type": "string"
+          },
+          "available": {
+            "type": "boolean",
+            "description": "The country recipe can be planned; not proof of complete or current records."
+          },
+          "unavailable_reason": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      }
     }
   },
   "paths": {
@@ -1683,6 +2171,9 @@
                     "metadata": {
                       "type": "object",
                       "description": "Attribution for a single result, when present."
+                    },
+                    "continuation": {
+                      "$ref": "#/components/schemas/Continuation"
                     }
                   }
                 }
@@ -1979,6 +2470,9 @@
                     "metadata": {
                       "type": "object",
                       "description": "Attribution for a single result, when present."
+                    },
+                    "continuation": {
+                      "$ref": "#/components/schemas/Continuation"
                     }
                   }
                 }
@@ -3321,6 +3815,9 @@
                     "metadata": {
                       "type": "object",
                       "description": "Attribution for a single result, when present."
+                    },
+                    "continuation": {
+                      "$ref": "#/components/schemas/Continuation"
                     }
                   }
                 }
@@ -3617,6 +4114,9 @@
                     "metadata": {
                       "type": "object",
                       "description": "Attribution for a single result, when present."
+                    },
+                    "continuation": {
+                      "$ref": "#/components/schemas/Continuation"
                     }
                   }
                 }
@@ -4630,9 +5130,6 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "question"
-                ],
                 "properties": {
                   "question": {
                     "type": "string",
@@ -4661,8 +5158,34 @@
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 55
+                  },
+                  "workflow": {
+                    "$ref": "#/components/schemas/WorkflowInput"
                   }
-                }
+                },
+                "additionalProperties": false,
+                "oneOf": [
+                  {
+                    "required": [
+                      "question"
+                    ],
+                    "not": {
+                      "required": [
+                        "workflow"
+                      ]
+                    }
+                  },
+                  {
+                    "required": [
+                      "workflow"
+                    ],
+                    "not": {
+                      "required": [
+                        "question"
+                      ]
+                    }
+                  }
+                ]
               }
             }
           }
@@ -4958,6 +5481,9 @@
                     "metadata": {
                       "type": "object",
                       "description": "Attribution for a single result, when present."
+                    },
+                    "continuation": {
+                      "$ref": "#/components/schemas/Continuation"
                     }
                   }
                 }
@@ -5254,6 +5780,9 @@
                     "metadata": {
                       "type": "object",
                       "description": "Attribution for a single result, when present."
+                    },
+                    "continuation": {
+                      "$ref": "#/components/schemas/Continuation"
                     }
                   }
                 }
@@ -6576,6 +7105,9 @@
                     "metadata": {
                       "type": "object",
                       "description": "Attribution for a single result, when present."
+                    },
+                    "continuation": {
+                      "$ref": "#/components/schemas/Continuation"
                     }
                   }
                 }
@@ -6872,6 +7404,9 @@
                     "metadata": {
                       "type": "object",
                       "description": "Attribution for a single result, when present."
+                    },
+                    "continuation": {
+                      "$ref": "#/components/schemas/Continuation"
                     }
                   }
                 }
@@ -7861,6 +8396,213 @@
         }
       }
     },
+    "/v2/asks/{id}/continue": {
+      "post": {
+        "summary": "Continue a saved run",
+        "operationId": "continueAsk",
+        "description": "Requires ask:execute and the same key that created the task. Submit a returned select_entity or supply_input action with its signed state. Resumes existing approved work without buying the search twice. Never approves a new quote. Idempotency-Key is required; retry the same state, action and input unchanged.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "pattern": "^[!-~]+$"
+            },
+            "description": "Unique per task continuation. Reuse for retries of the same state/action/input."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "state",
+                  "action_id",
+                  "input"
+                ],
+                "properties": {
+                  "state": {
+                    "$ref": "#/components/schemas/ContinuationState"
+                  },
+                  "action_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "input": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "entity_ref"
+                        ],
+                        "properties": {
+                          "entity_ref": {
+                            "type": "string",
+                            "format": "uuid"
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "value"
+                        ],
+                        "properties": {
+                          "value": {
+                            "description": "Value matching the returned action input_schema."
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "wait_seconds": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 55,
+                    "default": 25
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerRun"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Still running",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerRun"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request, missing Idempotency-Key or altered/mismatched continuation state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "invalid_api_key, api_key_expired or api_key_revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "insufficient_scope or organisation_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "source_not_found or operation_not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "continuation_changed, run_cancelled, plan_expired, idempotency_conflict or request_in_progress. Read the run before taking a new action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "invalid_continuation_input: input does not match the returned action schema or candidate set.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate_limit_exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "source_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerRun"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "service_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/runs/{id}": {
       "get": {
         "summary": "Read a run",
@@ -8187,6 +8929,9 @@
                     "metadata": {
                       "type": "object",
                       "description": "Attribution for a single result, when present."
+                    },
+                    "continuation": {
+                      "$ref": "#/components/schemas/Continuation"
                     }
                   }
                 }
@@ -8483,6 +9228,9 @@
                     "metadata": {
                       "type": "object",
                       "description": "Attribution for a single result, when present."
+                    },
+                    "continuation": {
+                      "$ref": "#/components/schemas/Continuation"
                     }
                   }
                 }
@@ -10496,6 +11244,9 @@
                     "metadata": {
                       "type": "object",
                       "description": "Attribution for a single result, when present."
+                    },
+                    "continuation": {
+                      "$ref": "#/components/schemas/Continuation"
                     }
                   }
                 }
@@ -10792,6 +11543,9 @@
                     "metadata": {
                       "type": "object",
                       "description": "Attribution for a single result, when present."
+                    },
+                    "continuation": {
+                      "$ref": "#/components/schemas/Continuation"
                     }
                   }
                 }
@@ -12107,6 +12861,9 @@
                     "metadata": {
                       "type": "object",
                       "description": "Attribution for a single result, when present."
+                    },
+                    "continuation": {
+                      "$ref": "#/components/schemas/Continuation"
                     }
                   }
                 }
@@ -12403,6 +13160,9 @@
                     "metadata": {
                       "type": "object",
                       "description": "Attribution for a single result, when present."
+                    },
+                    "continuation": {
+                      "$ref": "#/components/schemas/Continuation"
                     }
                   }
                 }
@@ -13220,6 +13980,89 @@
           },
           "503": {
             "description": "catalog_unavailable"
+          }
+        }
+      }
+    },
+    "/v2/ask/workflows": {
+      "get": {
+        "summary": "List fixed workflows and country coverage",
+        "operationId": "listAskWorkflows",
+        "description": "Free. Requires sources:read. Uses the same recipes as the App. Availability reflects planning, not paid result validation.",
+        "tags": [
+          "Ask"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workflow definitions and coverage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "workflows",
+                    "notice"
+                  ],
+                  "properties": {
+                    "notice": {
+                      "type": "string"
+                    },
+                    "workflows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "slug",
+                          "fields",
+                          "available",
+                          "country_coverage"
+                        ],
+                        "properties": {
+                          "slug": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "fields": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": true
+                            }
+                          },
+                          "available": {
+                            "type": "boolean"
+                          },
+                          "country_coverage": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/components/schemas/WorkflowCountryCoverage"
+                            }
+                          },
+                          "limitations": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication"
+          },
+          "403": {
+            "description": "Missing sources:read scope"
           }
         }
       }

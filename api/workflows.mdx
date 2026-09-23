@@ -1,0 +1,47 @@
+---
+title: "European company and tender dossiers"
+description: "Fixed source plans for identity, screening, filings and tender counterparties, with explicit country coverage."
+---
+
+## Discover current coverage
+
+`GET /v2/ask/workflows` requires `sources:read` and is free. It returns the same fixed recipes used by the App, their input fields, source steps, limitations and `country_coverage`. Each country has its own `available` and `unavailable_reason`. Availability means the gateway can build that plan; records still depend on the company, source and reporting period.
+
+| Workflow | Country coverage | Included |
+| --- | --- | --- |
+| `european-company-dossier` | NL, GB, FR, BE, FI, NO, LV, EE, SE, DK, SK | Registered identity, screening of the registry-returned name, available accounts or filing records |
+| `tender-company-dossier` | NL, FR counterparties | Company dossier plus bounded public-contract or notice links |
+
+The Netherlands uses KVK profiles and the supported XBRL account subset. Great Britain uses Companies House profiles and filing-history metadata. France uses Sirenic profiles and available annual financial figures. The other listed countries use Sirenic national-registry profiles and country-specific account/deposit records. Filing references are not downloaded documents.
+
+Screening uses OpenSanctions and the legal name returned by the registered profile, with a country hint. A possible match requires review. Missing matches do not certify compliance. Owners, directors and subsidiaries are not screened individually.
+
+The Dutch tender dossier adds TenderNed name mentions and TED numeric identifier matches; the identifier scheme and legal-entity link remain unconfirmed. The French dossier adds Sirenic French public-contract records and European notice links for the French company. This is not exhaustive Europe-wide tender discovery, an awards ledger or automatic screening of every party in a tender list.
+
+## Prepare one dossier
+
+`POST /v2/ask` requires `ask:create`. Supply `workflow` instead of `question`:
+
+```json
+{
+  "workflow": {
+    "slug": "tender-company-dossier",
+    "input": {
+      "name": "Mollie B.V.",
+      "country": "NL",
+      "registration": "30204462"
+    }
+  },
+  "execution_mode": "plan"
+}
+```
+
+Send a stable `Idempotency-Key`. The gateway validates the fields and country, saves one task and quotes the full source plan. No purchase occurs during planning. Unknown countries, missing sources and malformed identifiers are refused rather than silently dropping a check.
+
+The returned run uses the standard [Ask response](/api/ask). Approve it with `POST /v2/asks/{id}/run` and a total `max_spend`. Fixed workflows use the existing 20% workflow fee, included in the quote. Source results and actual charges remain on the saved run. Polling or replaying the approved run does not buy it again.
+
+`execution_mode: "auto"` also works with a required `max_spend`, subject to the same source-verification and spending checks as free-text Ask. [Continue](/api/continue) any returned structured input or selection on the same task.
+
+## App and MCP
+
+The App exposes both dossiers through its existing Workflows and Ask routes. In MCP, `apiosk_discover` accepts the same `workflow` object instead of `question`; it returns the normal approval card and saved task. Continue through `apiosk_execute` and `apiosk_status`. Never invent a registration number to fill the form: resolve the company first when the identifier is unknown.

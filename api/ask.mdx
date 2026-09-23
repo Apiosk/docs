@@ -10,6 +10,8 @@ operations, prices a plan, and runs it on your approval.
 Ask and [direct calls](/api/execute) use the same source catalogue, the same
 prices and the same ledger. There are no Ask-only sources.
 
+Use a [fixed workflow](/api/workflows) for a reproducible company or tender dossier with explicit country coverage. Supply either `question` or `workflow`.
+
 ## Plan a question
 
 ```http
@@ -28,7 +30,7 @@ curl https://gateway.apiosk.com/v2/ask \
 
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `question` | string, 1–4000 chars | required | The question, in the user's own words |
+| `question` | string, 1–4000 chars | required unless `workflow` is supplied | The question, in the user's own words |
 | `execution_mode` | `"plan"` or `"auto"` | `"plan"` | `auto` runs the plan straight away when it fits `max_spend` |
 | `max_spend` | decimal USD | none | Required with `auto`; the ceiling for the whole plan |
 | `limit` | integer 1–50 | none | Cap the number of result documents returned |
@@ -117,9 +119,15 @@ language <code>message</code>, or both. Ask the person for the missing
 context; never fill it in by guessing. A <code>needs_selection</code> response
 offers candidates, so ask which entity they meant.
 
-The buyer HTTP API does not expose the App/MCP task-continuation action:
-submit a new clarified question with a new <code>Idempotency-Key</code>.
-Planning remains free. Keep the earlier ask id for its audit trail.
+When the response includes `continuation`, use
+[`POST /v2/asks/{id}/continue`](/api/continue) to select a candidate or supply
+the requested structured value on the same saved task. A paid search is not
+repeated. Selection resumes the remaining work under the original valid
+approval; a new quote created by supplied input requires an explicit `/run`.
+
+A natural-language clarification without `continuation` still requires a new
+clarified Ask. Inspect the earlier run's results and usage first; do not
+automatically repeat a paid request. Document uploads use the App.
 
 ## Statuses
 
@@ -129,8 +137,8 @@ Planning remains free. Keep the earlier ask id for its audit trail.
 | `running` | The plan is executing (HTTP `202`) | Poll `GET /v2/runs/{id}` |
 | `completed` | Every step finished | Read `answer`, `results`, `usage` |
 | `partial` | Some steps failed or were skipped | Read `errors` beside the results you did get |
-| `needs_input` | The question is missing something | `needs_input` lists the fields with their schemas; a clarifying question is in `message` |
-| `needs_selection` | Several entities match | `candidates` lists them; ask again with an identifier |
+| `needs_input` | The question is missing something | Use `continuation` for structured input, or read the clarification in `message` |
+| `needs_selection` | Several entities match | Choose from `candidates` and continue the saved task through `/continue` |
 | `unsupported` | No source can answer this | Nothing was charged |
 | `failed` | The run failed (HTTP `502`) | `error` and `errors` say why; see `usage` for what was charged |
 

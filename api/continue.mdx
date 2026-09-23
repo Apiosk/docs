@@ -1,0 +1,103 @@
+---
+title: "Continue a run"
+description: "Choose a company or supply missing input on the same saved task, without buying its search again."
+---
+
+An Ask can pause after a paid search because several companies match. Select
+the intended company on that same run. Apiosk retains the paid search, the
+original quote and its approval, and resumes the remaining work.
+
+```http
+POST /v2/asks/{id}/continue
+```
+
+Requires `ask:execute` and the same API key that created the task.
+`Idempotency-Key` is required: use a new key for each choice or supplied input,
+and keep it unchanged on transport retries.
+
+## Read the current continuation
+
+`POST /v2/ask`, `POST /v2/asks/{id}/run` and `GET /v2/runs/{id}` return
+`continuation` when the task has a supported action:
+
+- `select_entity`: choose an `entity_ref` from the returned `candidates`.
+- `supply_input`: provide `value` matching the returned `input_schema`.
+
+`continuation.state` is a signed snapshot. Copy the entire object unchanged;
+do not construct its fields. `continuation.actions` supplies the action ID,
+label and input schema. Never choose a company by array position alone.
+
+## Select a company
+
+The following uses the saved response `run` and an `entityRef` selected by
+the caller from its candidates. Keep `body` and `idempotencyKey` for retries.
+
+```javascript
+const action = run.continuation.actions.find(a => a.kind === "select_entity");
+const body = {
+  state: run.continuation.state,
+  action_id: action.action_id,
+  input: { entity_ref: entityRef },
+  wait_seconds: 25
+};
+const idempotencyKey = crypto.randomUUID();
+const response = await fetch(`https://gateway.apiosk.com/v2/asks/${run.id}/continue`, {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${apiKey}`,
+    "Content-Type": "application/json",
+    "Idempotency-Key": idempotencyKey
+  },
+  body: JSON.stringify(body)
+});
+const updatedRun = await response.json();
+```
+
+For a `supply_input` action, send `input: { value: suppliedValue }`. The
+value can be a string, number or other type specified by its schema.
+
+| Body field | Required | Meaning |
+| --- | --- | --- |
+| `state` | Yes | Exact `continuation.state` from this run |
+| `action_id` | Yes | ID of the returned selection or input action |
+| `input` | Yes | Object matching that action's `input_schema` |
+| `wait_seconds` | No | Wait up to 55 seconds; default 25 |
+| `limit` | No | Return at most 1–50 result documents |
+
+## Approval and recovery
+
+The response is the usual [run object](/api/runs), with the same `id`, saved
+results and cumulative usage. `202` means the worker is still running;
+poll `GET /v2/runs/{id}`. A successful selection under a valid approval needs
+no second `/run` call. The endpoint cannot approve a plan or raise a budget.
+
+If supplied input produces a new quote, the response is `requires_approval`.
+Review its ceiling and call `/run` explicitly. An expired original quote is
+refused with `409 plan_expired`; its saved results remain readable.
+
+After a timeout, retry the exact same state, action, input and
+`Idempotency-Key`. Even after the action was consumed, its saved receipt
+returns the current run without selecting or buying twice. `limit` and
+`wait_seconds` only affect presentation and may change between retries.
+
+After `409 continuation_changed`, read the run again. If it still offers an
+action, review it and submit its current state with a new idempotency key.
+Do not start a replacement Ask to recover an uncertain continuation.
+
+Natural-language clarifications without a `continuation` and document
+uploads are outside this endpoint. See [Ask](/api/ask#clarify-before-buying).
+
+## Status codes
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| 200 / 202 | — | Updated run or execution still running |
+| 400 | `invalid_request` / `invalid_continuation_state` | Missing key, invalid fields, mismatched task or altered signed state |
+| 401 / 403 | Authentication / scope error | Use the task's key with `ask:execute` |
+| 404 | `run_not_found` | Task unavailable to this key |
+| 409 | `continuation_changed` | Expired state, consumed action or concurrent update; read the run |
+| 409 | `idempotency_conflict` / `request_in_progress` | Changed input under the same key, or first request still running |
+| 409 | `run_cancelled` / `plan_expired` | Saved run cannot resume under this quote |
+| 422 | `invalid_continuation_input` | Candidate is not offered or value violates the schema |
+| 429 / 503 | Availability error | Recover the saved run; retry unchanged when appropriate |
+| 502 | `source_error` | A resumed source step failed; inspect results and usage |

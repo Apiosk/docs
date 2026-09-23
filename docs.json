@@ -66,6 +66,8 @@
               "api/sources",
               "api/execute",
               "api/ask",
+              "api/workflows",
+              "api/continue",
               "api/runs"
             ]
           },

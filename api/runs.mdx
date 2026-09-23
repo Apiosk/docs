@@ -68,6 +68,12 @@ Per-step problems, each with a code and a message. A `partial` run has both
 results and errors.
 </ResponseField>
 
+<ResponseField name="continuation" type="object">
+Present when a paused run accepts a company selection or structured input.
+Contains the signed `state` and permitted `actions`, including their input
+schemas. [Continue the saved task](/api/continue) using the same API key.
+</ResponseField>
+
 ## Status codes
 
 | Status | Code | Meaning |

@@ -34,6 +34,11 @@ operation.
 | `POST /v2/sources/{source_id}/run` | Honours `Idempotency-Key` |
 | `POST /v2/ask` | Honours `Idempotency-Key`; a retry returns the same plan or run |
 | `POST /v2/asks/{id}/run` | Idempotent by itself — an ask runs once, key or no key |
+| `POST /v2/asks/{id}/continue` | Requires `Idempotency-Key`; same state/action/input resumes the same run. `limit` and `wait_seconds` may change. |
+
+Continuations without a key are refused. Their keys are scoped to the calling
+key and task. Keep the original signed state when retrying the same choice;
+use a new idempotency key for a newly reviewed action.
 
 ## Retrying in practice
 
