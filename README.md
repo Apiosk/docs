@@ -1,69 +1,38 @@
-# Apiosk Gateway Docs
+# Apiosk buyer documentation
 
-Separate Mintlify docs project for the Apiosk gateway public surface.
+The public site at https://docs.apiosk.com covers self-service signup,
+organisation API keys, the buyer HTTP API, the hosted MCP server and App
+spending. Publishing and payment-rail material is outside this public
+integration guide while provider onboarding is not the product focus.
 
-This project documents only the public integration contract:
+## Sources of truth
 
-- discovery routes
-- public API detail routes
-- MCP-style `/metadata`
-- uniform `/execute`
-- x402 payment proofs at the public boundary
-- community API publishing and management
+- Buyer API routes and response shapes: gateway/src/server.rs and
+  gateway/src/public_api.rs in the sibling Gateway repository.
+- Source directory and executable status: gateway/src/sources.rs and the
+  public GET /v1/source-readiness snapshot.
+- Hosted MCP tools: mcp/src/gateway-v2.mjs in the sibling MCP repository.
+- Team signup and API-key controls: app/src/routes/signup.tsx and
+  app/src/components/workspaces/organisation-api-keys.tsx.
+- Generated API reference: openapi/apiosk-api.json.
 
-It intentionally excludes internal implementation details such as:
+Counts, operation availability and prices change. Do not copy a catalogue
+count or a price from an example into a promise. Use the live source detail.
 
-- platform wallet or settlement internals
-- facilitator wiring details
-- replay and anti-abuse internals
-- managed wallet session internals
-- operator-only control endpoints
+## Validate
 
-## Stack
-
-- `docs.json` for Mintlify site configuration
-- `.mdx` pages for guides and overview content
-- `openapi/public-gateway.json` as the sanitized source for generated API reference pages
-
-## Local usage
-
-```bash
-npm run dev
-```
-
-Validate the OpenAPI contract:
-
-```bash
-npm run check:openapi
-```
-
-## Netlify deploy
-
-Mintlify docs are hosted by the Mintlify client, not by this repo directly. For `docs.apiosk.com` on Netlify, this project builds a small deployable wrapper that:
-
-- proxies all traffic to a Mintlify deployment origin
-- shows a clear config page instead of a Netlify 404 when the target origin is missing
-
-Run docs validation separately before deploy:
-
-```bash
+~~~bash
 npm run validate
-```
+npm run check:openapi
+~~~
 
-Required Netlify environment variable:
+The Mintlify CLI is fetched by npx if it is not installed locally. A
+local JSON, navigation and link check can run without network access.
 
-```bash
-APIO_DOCS_PROXY_TARGET=https://your-docs-site.mintlify.app
-```
+## Hosting
 
-Recommended:
-
-- point `MINTLIFY_SITE_URL` at the live Mintlify deployment origin
-- keep `docs.apiosk.com` as the public domain on Netlify if you want Netlify in front
-
-Build output:
-
-- build command: `npm run build`
-- publish directory: `dist`
-
-If `APIO_DOCS_PROXY_TARGET` is not set, the deploy will still succeed, but the site will render a configuration page telling you exactly what is missing.
+Mintlify builds the docs content. The Netlify wrapper in this repository
+proxies docs.apiosk.com to the configured Mintlify origin. It requires
+APIO_DOCS_PROXY_TARGET. The wrapper is not a substitute for publishing
+the Mintlify content. After a docs release, verify the live homepage,
+OpenAPI reference and a representative API, MCP and App page.

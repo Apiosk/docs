@@ -43,10 +43,10 @@ curl https://gateway.apiosk.com/v2/ask \
     "quote_ref": "9ad2…",
     "expires_at": "2026-09-22T18:40:00Z",
     "steps": [
-      { "source_id": "kvk", "operation": "company_registry.search", "name": "Company search",
+      { "source_id": "kvk-dutch-business-register", "operation": "company_registry.search", "name": "Company search",
         "conditional": false,
         "estimated_cost": { "amount": 0.023, "amount_micro_usd": "23000", "currency": "USD" } },
-      { "source_id": "kvk", "operation": "company_registry.annual-accounts", "name": "Annual accounts",
+      { "source_id": "kvk-dutch-business-register", "operation": "company.financial-statements", "name": "Annual accounts",
         "conditional": false,
         "estimated_cost": { "amount": 0.115, "amount_micro_usd": "115000", "currency": "USD" } }
     ],
@@ -57,8 +57,10 @@ curl https://gateway.apiosk.com/v2/ask \
 }
 ```
 
-Planning is free. `estimated_total` is the **maximum** the run may cost; you are
-charged what the sources actually cost, which can be less.
+The plan and amounts above illustrate the response shape; read live source
+details for current prices. Planning is free. <code>estimated_total</code> is
+the maximum the run may cost; you are charged what the sources actually cost,
+which can be less.
 
 ### Run it later
 
@@ -107,6 +109,17 @@ unbilled:
   "plan": { "estimated_total": { "amount": 1.44, "amount_micro_usd": "1440000", "currency": "USD" } }
 }
 ```
+
+## Clarify before buying
+
+A <code>needs_input</code> response may contain field schemas, a natural
+language <code>message</code>, or both. Ask the person for the missing
+context; never fill it in by guessing. A <code>needs_selection</code> response
+offers candidates, so ask which entity they meant.
+
+The buyer HTTP API does not expose the App/MCP task-continuation action:
+submit a new clarified question with a new <code>Idempotency-Key</code>.
+Planning remains free. Keep the earlier ask id for its audit trail.
 
 ## Statuses
 

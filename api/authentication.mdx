@@ -3,7 +3,8 @@ title: "Authentication"
 description: "Organisation API keys: how to create one, what it may do, and what it spends."
 ---
 
-Every request to the Apiosk API carries an organisation API key.
+The buyer HTTP API uses an organisation API key. The app and hosted MCP
+server use account sign-in and connections.
 
 ```http
 Authorization: Bearer apk_org_live_…
@@ -13,9 +14,10 @@ Base URL: `https://gateway.apiosk.com`
 
 ## Create a key
 
-An organisation owner or admin creates keys in the app, under
-**Organisation → API keys**. A key has a name, an expiry date, a per-request
-limit, a monthly limit and a set of permissions.
+[Sign up](https://app.apiosk.com/signup), choose a team account, and confirm
+your email. An organisation owner or admin then creates keys in the app
+under **Organisation → API keys**. A key has a name, an expiry date, a
+per-request limit, a monthly limit and a set of permissions.
 
 The secret is shown **once**, at creation. Apiosk stores only its hash and can
 never show it again; if it is lost, revoke the key and create another.

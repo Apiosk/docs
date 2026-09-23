@@ -1,73 +1,40 @@
 ---
 title: "MCP clients"
-description: "The hosted server, the local package, and which tools each one exposes."
+description: "Connect the hosted Apiosk MCP server to an assistant."
 ---
 
-Apiosk speaks MCP two ways. They are different servers with different tool
-sets, so check which one you are running.
+The hosted MCP URL is:
 
-## Hosted (recommended)
-
-```
+~~~
 https://mcp.apiosk.com/mcp
-```
+~~~
 
-Streamable HTTP, OAuth on first use, no local state. Four tools:
-`apiosk_sources`, `apiosk_discover`, `apiosk_execute`, `apiosk_status`, plus an
-approval tool the interactive card uses when a person clicks Approve.
+## ChatGPT
 
-Setup and behaviour: **[MCP server](/mcp/overview)**.
+Add the URL as a remote MCP connector. Complete the Apiosk sign-in and
+connection consent when ChatGPT prompts you. If the client cached an older
+tool list, refresh the connector or start a new chat.
 
-<CodeGroup>
+## Claude Code
 
-```bash Claude Code
+~~~bash
 claude mcp add --transport http apiosk https://mcp.apiosk.com/mcp
-```
+~~~
 
-```json Config file
-{
-  "mcpServers": {
-    "apiosk": { "url": "https://mcp.apiosk.com/mcp" }
-  }
-}
-```
+Then complete the account sign-in when the client opens it. The hosted
+server exposes the four buyer tools described in [MCP server](/mcp/overview).
 
-</CodeGroup>
+## Another MCP client
 
-In ChatGPT, add the same URL as a connector.
+Configure a Streamable HTTP server with URL
+<code>https://mcp.apiosk.com/mcp</code> and let the client complete OAuth.
+Create an Apiosk account at [app.apiosk.com/signup](https://app.apiosk.com/signup)
+if you do not have one.
 
-## Local stdio package
+Browsing and planning do not charge your balance. For a paid request,
+review and approve the plan's total ceiling in the interactive card. The
+Gateway then runs it and saves the result. If a question lacks context,
+answer the clarification rather than approving a different request.
 
-```bash
-npx -y @apiosk/mcp
-# or
-uvx apiosk-mcp
-```
-
-The local package runs the x402 buying surface: it shops the wider x402
-ecosystem as well as the Apiosk catalogue, and it can hold a local wallet.
-
-| Tool | What it answers | Spends |
-| --- | --- | --- |
-| `apiosk` | The top ranked runnable provider, its price and required inputs | no |
-| `apiosk_connect` | Can this session buy? Which wallet, policy and limits | no |
-| `apiosk_discover` | What can perform this job, across Apiosk and x402 | no |
-| `apiosk_compare` | How candidates compare on price, latency and success rate | no |
-| `apiosk_execute` | Run the offer that was chosen, at the price shown | **yes** |
-| `apiosk_approval_status` | What happened to a purchase held by the buyer's rules | no |
-| `apiosk_plan` | What a multi-step job would take, in order, at one price | no |
-| `apiosk_execute_plan` | Start an approved plan by its token | **yes** |
-| `apiosk_job_status` | Where a running plan has got to | no |
-| `apiosk_resolve_job` | Which subject was meant, when a job stopped to ask | no |
-| `apiosk_cancel_job` | Stop dispatching further calls | no |
-
-Start with `apiosk_connect`: it reports whether the session can buy and returns
-a connection link when it cannot.
-
-## Which one
-
-| You want | Use |
-| --- | --- |
-| ChatGPT, Claude or another client to buy from the Apiosk catalogue | Hosted |
-| A local wallet, or to shop x402 resources outside Apiosk | Local package |
-| A server of your own, with no person in the loop | The [API](/api/authentication), not MCP |
+For a backend that needs an organisation-owned credential, follow the
+[API quickstart](/overview/quickstart) instead.

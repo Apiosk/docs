@@ -1,90 +1,55 @@
 ---
 title: "MCP server"
-description: "Connect ChatGPT, Claude or any MCP client to Apiosk once, then buy data in the conversation."
+description: "Connect an assistant, review one price, and receive saved source results."
 ---
 
-Apiosk runs a hosted MCP server. A client connects once, the person approves
-the connection and its spending limits in the app, and from then on the
-assistant can browse sources, price a question and — after an explicit
-approval — buy the data.
+Use the hosted MCP endpoint in ChatGPT, Claude or another compatible client:
 
-```
+~~~
 https://mcp.apiosk.com/mcp
-```
+~~~
 
-Streamable HTTP. The first data request starts the OAuth flow when the session
-has no connection yet.
+It uses Streamable HTTP and account OAuth. [Create an account](https://app.apiosk.com/signup)
+first if needed. When the client requests a protected action, complete
+sign-in and approve the connection and its spending limits in the app.
+Connection approval sets limits; it does not approve a future data purchase.
 
-## Connect a client
+## Tools the assistant sees
 
-<CodeGroup>
-
-```bash Claude Code
-claude mcp add --transport http apiosk https://mcp.apiosk.com/mcp
-```
-
-```json Claude Desktop / config file
-{
-  "mcpServers": {
-    "apiosk": {
-      "url": "https://mcp.apiosk.com/mcp"
-    }
-  }
-}
-```
-
-```bash Local stdio
-npx -y @apiosk/mcp
-# or
-uvx apiosk-mcp
-```
-
-</CodeGroup>
-
-In ChatGPT, add `https://mcp.apiosk.com/mcp` as a connector. The first paid
-action sends the person through OAuth to approve the connection.
-
-## The tools
-
-Four tools are visible to the assistant. Only one of them spends money, and
-only after the person has approved a plan.
-
-| Tool | What it does | Spends |
+| Tool | Purpose | Can buy data? |
 | --- | --- | --- |
-| `apiosk_sources` | Browse published sources by name, category, sector, tag or capability | no |
-| `apiosk_discover` | Turn a question into one priced plan, or ask for the missing detail | no |
-| `apiosk_execute` | Continue a task through a returned `next_action`: run a step, supply input, choose an entity, poll or cancel | yes, on approved steps |
-| `apiosk_status` | Read a saved task: results, actual charges, current status | no |
+| <code>apiosk_sources</code> | Browse and filter the source directory | No |
+| <code>apiosk_discover</code> | Plan a question, price it or ask for missing context | No |
+| <code>apiosk_execute</code> | Continue a saved task using a returned action | Only after purchase approval |
+| <code>apiosk_status</code> | Read saved status, results and charges | No |
 
-The interactive card adds an approval tool of its own, used when the person
-clicks Approve on the plan; an assistant never calls it by itself.
+The interactive card has a separate approval action that the person uses
+to approve the displayed total price ceiling. The assistant must not
+approve for the person. After approval the Gateway runs the task and saves
+the results; the assistant should read that state instead of starting
+another purchase.
 
-<Note>
-Browsing and planning are free. A price is always shown before anything is
-bought, and the amount approved is a ceiling — the run is charged what the
-sources actually cost.
-</Note>
+## When information is missing
 
-## What the person controls
+The card or assistant asks a clarifying question for
+<code>needs_input</code>, or presents candidates for
+<code>needs_selection</code>. Answer with the missing fact or choose
+the intended entity. The saved task continues with the offered action;
+there is no need to start a new purchase merely to clarify.
 
-The connection carries the limits the person set when approving it: a
-per-request ceiling and a daily ceiling. They are enforced on every call, not
-just on the first one, and the person can change or revoke the connection at
-any time under **Integrations** in the app.
+Browsing the directory does not promise that every published endpoint is
+runnable. Check the returned availability and let
+<code>apiosk_discover</code> verify whether the exact question has a
+priced plan.
 
-## When something goes wrong
+## Spending and recovery
 
-| The assistant sees | What it means | What to do |
-| --- | --- | --- |
-| `payment_required` | The balance cannot cover the call | Top up in the app, then ask again |
-| `not_authorised` | The connection expired or was revoked | Reconnect from the app |
-| A plan instead of a result | The question needs approval, or a missing detail | Approve in the card, or answer the question asked |
+A connection has a per-request and daily limit. The person can change or
+revoke it in the app under **Integrations**. A workspace-bound connection
+spends that workspace's budget; otherwise it uses the person's balance.
+Use <code>apiosk_status</code> and the saved task reference for a
+follow-up or interrupted response. Status reads do not buy data.
 
-## MCP or the API?
-
-| You are | Use |
-| --- | --- |
-| A person working in ChatGPT or Claude | The MCP server |
-| A server or an agent runtime you operate | The [API](/api/authentication) with an organisation key |
-
-Both reach the same catalogue, the same prices and the same ledger.
+For setup commands, see [MCP clients](/guides/mcp-clients). Server
+integrations without a person in the loop use an
+[organisation API key](/api/authentication).

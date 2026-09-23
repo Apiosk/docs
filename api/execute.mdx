@@ -19,7 +19,7 @@ Both paths are the same endpoint. The body is the operation's inputs and
 nothing else:
 
 ```bash
-curl https://gateway.apiosk.com/v1/execute/kvk/company_registry.search \
+curl https://gateway.apiosk.com/v1/execute/kvk-dutch-business-register/company_registry.search \
   -H "Authorization: Bearer $APIOSK_KEY" \
   -H "Idempotency-Key: nomi-request-983472" \
   -H "Content-Type: application/json" \
@@ -36,6 +36,8 @@ The `Idempotency-Key` header is optional and strongly recommended; see
 [Idempotency](/api/idempotency).
 
 ### What the path accepts
+
+The source must have a currently executable operation in its source detail. A discovery-only directory entry cannot be called.
 
 - **Source**: its id, its name, or a provider that groups several sources
   (`pulsenetwork`), case-insensitive. For a group, the call runs on the member
@@ -58,19 +60,21 @@ Each input may be named three ways, so you can use whichever you have:
 
 ## Response
 
+The amounts below illustrate the response shape, not a current KVK quote. Read the source detail for the current buyer price before running.
+
 `200` with the finished run:
 
 ```json
 {
   "id": "6f0b…",
   "status": "completed",
-  "question": "Run company_registry.search on kvk",
+  "question": "Run company_registry.search on kvk-dutch-business-register",
   "plan": {
     "quote_ref": "b41c…",
     "expires_at": "2026-09-22T18:12:04Z",
     "steps": [
       {
-        "source_id": "kvk",
+        "source_id": "kvk-dutch-business-register",
         "operation": "company_registry.search",
         "name": "Company search",
         "conditional": false,
@@ -80,17 +84,17 @@ Each input may be named three ways, so you can use whichever you have:
     "estimated_total": { "amount": 0.023, "amount_micro_usd": "23000", "currency": "USD" }
   },
   "answer": null,
-  "data": { "companies": [{ "kvkNummer": "30204462", "naam": "Mollie B.V." }] },
+  "data": {},
   "results": [
     {
       "result_ref": "a72e…",
-      "source": { "provider": "kvk", "name": "KVK" },
-      "data": { "companies": [{ "kvkNummer": "30204462", "naam": "Mollie B.V." }] }
+      "source": { "provider": "kvk-dutch-business-register", "name": "KVK Business Register" },
+      "data": {}
     }
   ],
   "usage": {
     "sources": [
-      { "source_id": "kvk", "operation": "company_registry.search", "calls": 1,
+      { "source_id": "kvk-dutch-business-register", "operation": "company_registry.search", "calls": 1,
         "cost": { "amount": 0.023, "amount_micro_usd": "23000", "currency": "USD" } }
     ],
     "cost": { "amount": 0.023, "amount_micro_usd": "23000", "currency": "USD" },

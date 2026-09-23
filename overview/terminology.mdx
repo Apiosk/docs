@@ -1,114 +1,45 @@
 ---
 title: "Terminology"
-description: "Shared definitions for the public gateway, dashboard, and payment docs."
+description: "The terms used by the App, buyer API, and hosted MCP server."
 ---
-
-# Terminology
 
 ## Source
 
-A published data provider in the Apiosk catalogue, identified by an id such as `kvk`. Listed by `GET /v2/sources`.
+A provider or source group in <code>GET /v2/sources</code>. A directory entry
+can be discovery-only. <code>available_in_v2</code> and
+<code>readiness</code> show whether at least one operation is currently
+executable.
 
-## Operation
+## Service and operation
 
-One thing a source can do, such as `company_registry.search`, with its own inputs, outputs and price. Named in the path of a call.
+A provider may publish several services, each with several endpoints. A
+currently executable endpoint appears as an operation in
+<code>GET /v2/sources/{source_id}</code>, with its input fields, capability
+and price. Pulse Network is one provider group with nested services.
 
-## Ask
+## Ask, plan, and run
 
-A question in a person's own words. Apiosk turns it into a plan across sources.
+An **Ask** is a question in a person's words. A **plan** shows source steps
+and one total price ceiling before purchase. A **run** is the saved execution,
+including results, charges, held funds and errors. Planning is free; a
+plan's quote expires.
 
-## Plan
+## Organisation and workspace
 
-The steps an ask would run, each with its own price, plus a ceiling for the whole thing. Planning is free; a plan expires.
+An **organisation** has members, a main balance and API keys. A **workspace**
+is a team area with its own members and budget. Organisation API keys spend
+the main balance; people and assistant connections can spend a workspace
+budget.
 
-## Run
+## API key and connection
 
-One execution of a direct call or a plan. It carries its results, what it cost per source, and what the balance is now.
-
-## Organisation
-
-The account that owns the money. It has members, workspaces and API keys.
-
-## Workspace
-
-A team space inside an organisation, with its own budget and members.
-
-## API key
-
-An organisation credential (`apk_org_live_…`) that a server uses to buy data, with a per-request limit, a monthly limit and permissions.
-
-## Connection
-
-A credential a person grants to an assistant, with a per-request and a daily ceiling. See [Connections](/app/connections).
-
-## Balance
-
-Prepaid funds in USD. The organisation's main balance funds API keys; workspace budgets are allocated from it.
+An **API key** (<code>apk_org_live_…</code>) is a server credential with
+permissions, expiry, a per-request limit and a monthly limit. A
+**connection** is consent granted by a person to an assistant, with a
+per-request and daily limit.
 
 ## Micro-USD
 
-A millionth of a dollar. Every amount in the API carries both a decimal `amount` and an exact `amount_micro_usd` integer, so no rounding is implied.
-
-## Publishing terms
-
-The words below belong to the provider side: publishing an API and being paid per call.
-
-## Listing
-
-A public entry in the gateway catalog. A listing has a slug, description, pricing information, and optional agent-facing metadata.
-
-## Slug
-
-The stable public identifier used in gateway URLs, for example `neural-sync-01`.
-
-## Origin URL
-
-The upstream base URL for the provider service behind a listing.
-
-## Gateway URL
-
-The public URL clients use through Apiosk, typically `https://gateway.apiosk.com/:slug`.
-
-## Listing metadata
-
-Public agent-facing metadata such as tags, default operation, and schema hints. This is not a place for secrets or internal notes.
-
-## Endpoint docs
-
-Public request and response hints attached to a listing so agents and operators can understand how to call it.
-
-## Default operation
-
-The operation used when a client posts raw JSON to `POST /:api_slug/execute` without specifying an explicit operation name.
-
-## Passthrough route
-
-A route under `/:api_slug/*path` that preserves the provider-specific HTTP shape instead of using the normalized `/execute` contract.
-
-## Managed wallet
-
-A dashboard-driven wallet workflow for repeated paid calls. It is the easier operator flow, but the internal implementation is intentionally not documented here.
-
-## Connect string
-
-A dashboard-generated credential bundle used with managed wallet flows. Public docs describe how to use it operationally, not how it works internally.
-
-## Raw x402
-
-The explicit payment flow where the client receives `HTTP 402`, signs the payment requirement externally, and retries with `x-payment`.
-
-## Payment proof
-
-The proof attached in the `x-payment` header when retrying a paid request.
-
-## Paid route
-
-A route or operation that requires payment before the gateway forwards the request.
-
-## Free route
-
-A route or operation that does not require payment before forwarding.
-
-## Pending, active, inactive
-
-Public listing lifecycle states. `pending` listings have been submitted and are queued for Apiosk review: they are hidden from the catalog and serve no traffic. `active` listings have been approved by an operator and are usable and discoverable. `inactive` listings are not ready for normal public use. A listing cannot be moved to `active` except by an admin approval, the review gate rewrites any other attempt to `pending`. A declined review leaves the listing `inactive`. See [Publisher Lifecycle](/guides/publisher-lifecycle).
+One millionth of a US dollar. API money objects carry a decimal
+<code>amount</code> and an exact integer string
+<code>amount_micro_usd</code>.

@@ -1,143 +1,103 @@
 ---
 title: "Sources"
-description: "Find sources and read the operations, inputs and prices of one."
+description: "Browse the directory and inspect currently executable operations."
 ---
 
-Browsing is free. Nothing on this page charges the balance.
+Browsing is free. The directory covers verified listings; it does not imply
+that every upstream endpoint has an accepted execution contract.
 
 ## List sources
 
-```http
+~~~http
 GET /v2/sources
-```
+~~~
 
-Requires `sources:read`.
+Requires <code>sources:read</code>.
 
 | Query | Type | Meaning |
 | --- | --- | --- |
-| `search` | string, ≤200 chars | Matches name, description, category, tags, sectors and capabilities |
-| `category` | string | Exact category, as returned in `categories` |
-| `tag` | string | Exact tag |
-| `sector` | string | Exact sector |
-| `capability` | string | Only sources with this operation |
-| `offset` | integer | Page start; use `next_offset` from the previous page |
-| `limit` | integer, 1–50 | Page size, default 20 |
+| <code>search</code> | String, at most 200 characters | Name, description, category, tags, sectors and capabilities |
+| <code>category</code> | String | Exact returned category |
+| <code>tag</code> | String | Exact returned tag |
+| <code>sector</code> | String | Exact returned sector |
+| <code>capability</code> | String | Sources advertising that capability; check execution availability separately |
+| <code>offset</code> | Integer | Page start; continue with <code>next_offset</code> |
+| <code>limit</code> | Integer 1–50 | Page size, default 20 |
 
-```bash
+~~~bash
 curl -G https://gateway.apiosk.com/v2/sources \
   -H "Authorization: Bearer $APIOSK_KEY" \
-  --data-urlencode "search=company registry" \
-  --data-urlencode "limit=2"
-```
+  --data-urlencode "search=company registry"
+~~~
 
-```json
-{
-  "protocol_version": "2",
-  "sources": [
-    {
-      "slug": "kvk",
-      "name": "KVK",
-      "description": "Dutch business register",
-      "category": "company",
-      "categories": ["company"],
-      "tags": ["registry", "netherlands"],
-      "sectors": ["public"],
-      "capabilities": ["company_registry.search", "company_registry.profile"],
-      "input_types": ["company.name"],
-      "endpoint_count": 4,
-      "available_in_v2": true,
-      "logo_url": "https://…/kvk.png"
-    }
-  ],
-  "total": 1,
-  "catalog_total": 48,
-  "offset": 0,
-  "next_offset": null,
-  "categories": ["company", "finance", "location"],
-  "tags": ["registry", "netherlands"],
-  "sectors": ["public"],
-  "capabilities": ["company_registry.search"]
-}
-```
+The response has <code>sources</code>, <code>total</code> for this
+filter, <code>catalog_total</code> for the entire directory and
+<code>next_offset</code> for pagination. Counts are live and can change.
+Each provider group is counted once. Pulse Network can contain many nested
+services; <code>service_count</code> is the full number and
+<code>services</code> contains the matching services in this query.
 
-`total` counts matching sources; `catalog_total` counts every purchasable
-source. A source is counted once: services published under one provider appear
-nested on that source, not as sources of their own.
+For each row:
 
-## Read one source
+- <code>endpoint_count</code> counts registered endpoints, including
+  endpoints that cannot currently run.
+- <code>capabilities</code> can include advertised capabilities.
+- <code>executable_capabilities</code> lists capabilities accepted by the
+  current runtime.
+- <code>available_in_v2</code> is true when at least one operation in the
+  source group can run.
+- <code>readiness</code> describes contract and evidence coverage. An
+  unmeasured endpoint is not proof of reliable execution.
 
-```http
+## Read one executable source
+
+~~~http
 GET /v2/sources/{source_id}
-```
+~~~
 
-Requires `sources:read`. This is where the operation ids, input fields and
-prices for a call come from.
+Requires <code>sources:read</code>. Use a source's returned slug, for
+example:
 
-```bash
-curl https://gateway.apiosk.com/v2/sources/kvk \
+~~~bash
+curl https://gateway.apiosk.com/v2/sources/kvk-dutch-business-register \
   -H "Authorization: Bearer $APIOSK_KEY"
-```
+~~~
 
-```json
-{
-  "id": "kvk",
-  "name": "KVK",
-  "description": "Dutch business register",
-  "category": "company",
-  "tags": ["registry", "netherlands"],
-  "sectors": ["public"],
-  "jurisdiction": "NL",
-  "operations": [
-    {
-      "id": "company_registry.search",
-      "name": "Company search",
-      "input": [
-        { "field": "company.name", "required": true, "schema": { "type": "string", "minLength": 2 } }
-      ],
-      "output": ["company_registry.kvknummer", "company.name"],
-      "pricing": {
-        "model": "per_call",
-        "price": { "amount": 0.023, "amount_micro_usd": "23000", "currency": "USD" }
-      },
-      "freshness_seconds": 3600
-    }
-  ]
-}
-```
+The response lists only currently executable <code>operations</code>.
+Each operation includes its <code>id</code>, <code>source_id</code>,
+input fields and schemas, outputs, current buyer price and optional
+variants. For a provider group, each operation names the member service
+that actually runs it. Use that operation and its inputs in
+[Call a source](/api/execute).
 
-<ResponseField name="operations[].id" type="string">
-The operation id you put in the path of a call.
-</ResponseField>
+A directory entry with no accepted operation can return
+<code>404 source_not_found</code> on this detail route. It remains
+discoverable so you can see its published metadata; it cannot be bought
+through the buyer API until a contract is accepted.
 
-<ResponseField name="operations[].input" type="array">
-Each field with whether it is required and the JSON schema its value must match.
-Values are validated before anything is priced.
-</ResponseField>
+## Browse endpoints inside a source
 
-<ResponseField name="operations[].variants" type="array">
-Present when the operation has several variants, each with its own inputs and
-price. A call runs the variant whose inputs it supplies.
-</ResponseField>
+The compact endpoint index is useful when a provider publishes many services:
 
-<ResponseField name="operations[].source_id" type="string">
-The source that runs the operation. For a provider that groups several sources,
-such as `pulsenetwork`, this names the member.
-</ResponseField>
+~~~http
+GET /v2/sources/{source_id}/endpoints?search=filings&limit=40&offset=0
+~~~
 
-<ResponseField name="operations[].output" type="array">
-What the operation produces. An operation whose output is another operation's
-required input is how a plan gets built; see [Ask](/api/ask).
-</ResponseField>
+Requires <code>sources:read</code>. The response contains
+<code>total</code>, <code>items</code> and
+<code>next_offset</code>. Each item names the service
+<code>slug</code> and <code>listing</code>, then a compact endpoint
+with its id, method, path, description, category, tags and use cases.
+<code>endpoint.planner_available</code> tells you whether that exact
+endpoint has a runtime-accepted planner contract. A listed endpoint
+without that flag cannot be quoted or executed through the buyer API.
+Search and paginate rather than downloading every endpoint at once.
 
-<ResponseField name="operations[].pricing.price" type="object">
-What one call costs the buyer, with the Apiosk fee already included. Every
-amount in the API carries both a decimal `amount` and the exact integer
-`amount_micro_usd`.
-</ResponseField>
+For Pulse Network, use <code>pulsenetwork</code> as the source id to
+browse endpoints across its nested services.
 
-| Status | Code | Meaning |
-| --- | --- | --- |
-| 200 | — | The source and its operations |
-| 401 | `invalid_api_key` | See [Authentication](/api/authentication) |
-| 403 | `insufficient_scope` | The key lacks `sources:read` |
-| 404 | `source_not_found` | No purchasable source has this id or name |
+## Check readiness without a key
+
+<code>GET /v1/source-readiness</code> returns aggregate, public contract
+coverage and recorded execution outcomes. It is a diagnostic snapshot,
+not a live test of every endpoint or a guarantee about source data.

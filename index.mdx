@@ -1,54 +1,54 @@
 ---
 title: "Apiosk"
-description: "Ask a question, get verifiable data, pay per call."
+description: "Ask a question, review the price, and get sourced data."
 ---
 
-Apiosk buys data for you. You ask for something — a company's filed accounts, a
-registered address, a tender — and Apiosk finds the sources that can answer,
-shows the price before anything is bought, buys only what it needs, and hands
-back the source's own document with what it cost.
-
-One catalogue, one price list, one ledger. Three ways to reach it.
+Apiosk finds data sources for a question, shows one total price before a
+purchase, and returns the source documents with the actual charge. Start in
+the app, connect an assistant through MCP, or use the buyer API from your
+server.
 
 <CardGroup cols={3}>
   <Card title="The app" icon="app-window" href="/app/organisations">
-    Ask questions, manage your team and workspaces, top up the balance, read usage.
+    Create a team, ask questions, manage its balance and read saved results.
   </Card>
-  <Card title="The API" icon="code" href="/api/authentication">
-    Your servers, with an organisation API key. Discover, call one source, or let Apiosk plan.
+  <Card title="The API" icon="code" href="/overview/quickstart">
+    Create an organisation key, browse sources and run a priced request.
   </Card>
   <Card title="MCP" icon="bot" href="/mcp/overview">
-    ChatGPT, Claude and agent clients, connected once and spending under limits.
+    Connect ChatGPT or Claude, review a plan and approve in the chat card.
   </Card>
 </CardGroup>
 
-## The shortest paid call
+## Self-service setup
 
-```bash
-curl https://gateway.apiosk.com/v1/execute/kvk/company_registry.search \
+1. [Sign up](https://app.apiosk.com/signup) and choose a team account.
+2. Confirm your email, then open **Organisation → API keys** as an owner or
+   admin.
+3. Set the key's permissions and spending limits. The secret is shown once.
+4. [Follow the API quickstart](/overview/quickstart), or connect an
+   [MCP client](/guides/mcp-clients).
+
+## A direct call
+
+Read the source's current operations and price before executing. For example,
+the KVK company search uses this path and input:
+
+~~~bash
+curl https://gateway.apiosk.com/v1/execute/kvk-dutch-business-register/company_registry.search \
   -H "Authorization: Bearer $APIOSK_KEY" \
   -H "Idempotency-Key: my-request-1" \
   -H "Content-Type: application/json" \
   -d '{"company.name":"Mollie B.V."}'
-```
+~~~
 
-The key says who pays, the path says what to run, the body carries the inputs.
-The answer arrives with the data, what it cost and what is left.
-[Start here](/overview/quickstart).
+The key identifies who pays; the path identifies one operation. To let
+Apiosk select and price several operations, use [Ask](/api/ask).
 
-## What holds it together
+## What the catalogue means
 
-- **One catalogue.** Every source in `GET /v2/sources` can be called directly
-  and can appear in a plan. There are no API-only sources.
-- **One price.** What a source costs in the catalogue is what a run is charged,
-  fee included. The per-source usage of a run adds up to its total.
-- **Money moves in one order.** Approve, reserve, run, settle. Nothing is paid
-  before it is bought, and a failed call is refunded.
-- **Retries are safe.** An `Idempotency-Key` makes a repeat call the same call.
-
-## For providers
-
-Publishing an API and getting paid per call runs on the x402 rail, with its own
-dashboard and its own docs: [publishing](/guides/publishers),
-[the provider dashboard](/dashboard/overview) and
-[Apiosk Pay](/pay/overview) for hosted checkouts.
+The directory lists verified sources, including entries that are currently
+discovery-only or restricted. A source's <code>available_in_v2</code>,
+<code>readiness</code> and <code>executable_capabilities</code> show what
+can be planned now. The App, MCP server and API share executable contracts
+and the same price and saved-run ledger. See [Sources](/api/sources).

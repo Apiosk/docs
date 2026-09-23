@@ -1,76 +1,44 @@
 ---
-title: "Payment model"
-description: "Two rails: a prepaid balance for buying data, and x402 for paying providers."
+title: "Prices and balance"
+description: "What buyers see, approve, and are charged."
 ---
 
-# Payment model
+Apiosk shows a price before a data purchase. The displayed total is the most
+the request may cost. You approve that ceiling once; the finished run reports
+the actual charge and the source behind it.
 
-Apiosk has two payment rails, and which one you meet depends on which side you are on.
+## The buying flow
 
-## Buying data: the balance
+1. Browse sources or ask a question. Browsing and planning are free.
+2. Review the plan and its total price ceiling.
+3. Approve the plan in the app or MCP card. With the API, send
+   <code>max_spend</code> to authorize an automatic run or call the plan's run
+   endpoint.
+4. Apiosk reserves each source call before dispatching it. Settled charges and
+   any funds still held appear separately in the run's <code>usage</code>.
+5. Read the sourced result and final charge. Unused reserved money is released.
+   A call that did not deliver data is refunded or held for reconciliation if
+   its outcome is still unknown.
 
-Everyone who buys data — in the app, through an [API key](/app/api-keys), or
-through the [MCP server](/mcp/overview) — spends a prepaid balance in **USD**.
+Prices and balances are shown in USD. API amounts include both a decimal
+<code>amount</code> and an exact <code>amount_micro_usd</code>. The catalogue's
+price is the buyer total for that operation; there is no extra fee to add to
+the displayed quote.
 
-1. **Approve.** A price is shown first; approving it sets a ceiling.
-2. **Reserve.** Before a source is called, its cost is taken from the balance.
-3. **Run.** The source is called.
-4. **Settle.** The actual cost is charged and the rest released.
+## Which balance pays?
 
-A failed call is refunded; a call whose outcome is unknown stays held until it
-is reconciled, and is never charged twice. The price in the catalogue already
-includes the Apiosk fee, so the per-source costs of a run add up to its total.
-Balances are topped up in the app. See [Balance and usage](/api/billing).
+| Caller | Balance |
+| --- | --- |
+| Organisation API key | The organisation's main balance |
+| Person in a workspace | That workspace's budget |
+| Person outside a workspace | Their personal balance |
+| Assistant connection | The balance of the person or workspace that approved it |
 
-## Paying providers: x402
+An API key also has its own per-request and monthly limits. An assistant
+connection has a per-request and daily limit. A limit or balance refusal means
+the purchase did not start. In the buyer API, HTTP 402 with
+<code>insufficient_balance</code> or <code>spend_limit_exceeded</code> asks you
+to fund the balance or change the relevant limit.
 
-Published APIs are paid per call over x402, in USDC. That is the rail below,
-and it is what a provider sees. A buyer using the balance never handles a `402`
-challenge or a wallet; Apiosk settles with the provider on their behalf.
-
-### The x402 boundary
-
-For callers paying on the x402 rail directly:
-
-1. The client requests a route.
-2. If the route is paid and no valid proof is attached, the gateway returns `HTTP 402`.
-3. The client retries with a valid `x-payment` proof.
-4. The gateway forwards the request and returns the upstream result.
-
-## Public payment facts
-
-- networks: Base (always on), plus Polygon and Arbitrum when the facilitator supports them, see [Multi-chain Settlement](/guides/multichain)
-- asset: USDC (on-chain rail) or EUR via SEPA Direct Debit (bank rail)
-- challenge transport: `HTTP 402 Payment Required`: the challenge lists one `accepts` entry per configured network, with Base always included as a fallback
-- proof transport: `x-payment`
-- platform fee on USDC rail: **2%** (publishers receive 98% of each settled call)
-- platform fee on SEPA rail: none: Apiosk charges a monthly subscription instead of a per-transaction percentage
-- settlement contract on Base: [`0x512c770Ef7B651298cBFA2Ab865A81C12F0c703d`](https://basescan.org/address/0x512c770Ef7B651298cBFA2Ab865A81C12F0c703d)
-
-## Payment modes you can use
-
-### Managed wallet mode
-
-A managed agent wallet plus a connect string lets the gateway handle recurring paid calls within configured limits, without you building a payer loop.
-
-<Warning>
-Creating a new managed (custodial) wallet is currently unavailable. The legacy dashboard service that derived and encrypted wallet keys has been retired, so wallet creation returns `custodial_wallet_creation_unavailable`. Managed wallets that already exist keep working, and connect tokens can still be minted for them. For a self-serve wallet today, use the local stdio MCP package and create a local wallet, or bring your own payer with raw x402 mode.
-</Warning>
-
-### Raw x402 mode
-
-Use your own payer and sign the challenge yourself. This is the cleanest option when you want direct control over the payment proof flow. The `402` challenge may offer several networks, pick the entry you can pay on and name that network in your payment payload; see [Multi-chain Settlement](/guides/multichain).
-
-### SEPA Direct Debit rail
-
-For EU operators who need bank-side settlement instead of on-chain USDC, the gateway supports SEPA Direct Debit via Mollie. Paid calls are debited from the buyer's IBAN under a mandate signed once in the buyer portal. SEPA is priced as a monthly subscription, not a per-transaction percentage.
-
-You can pin the rail explicitly per request with the `X-Apiosk-Rail` header (`x402`, `sepa`, or `credits`). If you omit it, the gateway selects the cheapest viable rail for the call.
-
-### Unpaid routes
-
-Some endpoints or operations may be configured as unpaid. Those routes do not require a payment proof.
-
-## What is not documented here
-
-This page does not describe settlement topology, operator controls, internal verification behavior, or managed-wallet implementation details beyond the public integration boundary.
+For exact fields, see [Balance and usage](/api/billing),
+[Ask](/api/ask), and [Runs](/api/runs).

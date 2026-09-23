@@ -1,100 +1,81 @@
 ---
 title: "Quickstart"
-description: "From nothing to a paid call in four steps."
+description: "Create a team key, inspect a source, and make a bounded call."
 ---
 
-You need an Apiosk organisation with a funded balance. Everything below takes
-one terminal.
+## 1. Create a team account
 
-## 1. Create a key
+[Sign up in the app](https://app.apiosk.com/signup), choose a team account,
+and confirm your email. This creates an organisation. An owner or admin can
+open **Organisation → API keys**. Fund the organisation's main balance before
+making a paid call; creating a key and browsing sources do not charge it.
 
-In the app, open **Organisation → API keys → Create API key**. Give it a name,
-an expiry, a per-request limit, a monthly limit and the permissions it needs.
+## 2. Create an API key
 
-Copy the secret when it is shown — it is shown once.
+Give the key a name, expiry, per-request limit, monthly limit and the
+permissions it needs. Copy the secret when it appears; it is shown once.
+Keep it on your server.
 
-```bash
+~~~bash
 export APIOSK_KEY="apk_org_live_…"
-```
+~~~
 
-## 2. Check it works
+For this guide, enable <code>sources:read</code>,
+<code>sources:execute</code> and <code>billing:read</code>. Add
+<code>ask:create</code> and <code>ask:execute</code> to run questions
+through Ask.
 
-```bash
+## 3. Check the key and browse
+
+~~~bash
 curl https://gateway.apiosk.com/v2/balance \
   -H "Authorization: Bearer $APIOSK_KEY"
-```
 
-You get the organisation's balance and this key's limits. If that answers
-`401`, the key is wrong, expired or revoked; `403` means it lacks
-`billing:read`.
-
-## 3. Find a source
-
-```bash
 curl -G https://gateway.apiosk.com/v2/sources \
   -H "Authorization: Bearer $APIOSK_KEY" \
   --data-urlencode "search=company registry"
-```
+~~~
 
-Then read one source to get its operation ids, input fields and prices:
+The directory includes sources that cannot currently run. Choose a row with
+<code>available_in_v2: true</code>, then inspect its executable operations,
+exact inputs and current prices:
 
-```bash
-curl https://gateway.apiosk.com/v2/sources/kvk \
+~~~bash
+curl https://gateway.apiosk.com/v2/sources/kvk-dutch-business-register \
   -H "Authorization: Bearer $APIOSK_KEY"
-```
+~~~
 
-Browsing is free.
+## 4. Run one operation
 
-## 4. Buy one call
+Use an operation and input returned by the source detail. Set a unique
+<code>Idempotency-Key</code> for this purchase:
 
-```bash
-curl https://gateway.apiosk.com/v1/execute/kvk/company_registry.search \
+~~~bash
+curl https://gateway.apiosk.com/v1/execute/kvk-dutch-business-register/company_registry.search \
   -H "Authorization: Bearer $APIOSK_KEY" \
   -H "Idempotency-Key: quickstart-1" \
   -H "Content-Type: application/json" \
   -d '{"company.name":"Mollie B.V."}'
-```
+~~~
 
-```json
-{
-  "id": "6f0b…",
-  "status": "completed",
-  "data": { "companies": [{ "kvkNummer": "30204462", "naam": "Mollie B.V." }] },
-  "usage": { "cost": { "amount": 0.023, "amount_micro_usd": "23000", "currency": "USD" } },
-  "balance": { "remaining": { "amount": 47.797, "amount_micro_usd": "47797000", "currency": "USD" } }
-}
-```
-
-That is a purchase: one source, one price, one charge.
+A completed response includes <code>data</code>,
+<code>results[].metadata</code>, <code>usage.cost</code>,
+<code>usage.held</code> and <code>balance.remaining</code>. If it
+returns HTTP 202, read the saved run at <code>GET /v2/runs/{id}</code>.
+This is a paid operation; do not run the example simply to test a key.
 
 ## When you do not know the source
 
-Let Apiosk plan across sources, see the price, then run it:
+Ask for a free priced plan:
 
-```bash
+~~~bash
 curl https://gateway.apiosk.com/v2/ask \
   -H "Authorization: Bearer $APIOSK_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"question":"Registered address and latest filed accounts for Mollie B.V."}'
-```
+  -d '{"question":"Registered address and filed accounts for Mollie B.V."}'
+~~~
 
-The answer holds a plan with a per-step price and a total ceiling. Run it with
-`POST /v2/asks/{id}/run`, or ask with `"execution_mode":"auto"` and a
-`max_spend` to have it run straight away when it fits.
-
-## Next
-
-<CardGroup cols={2}>
-  <Card title="Authentication" icon="key" href="/api/authentication">
-    Scopes, refusals and key handling.
-  </Card>
-  <Card title="Call a source" icon="zap" href="/api/execute">
-    Path forms, input aliases, every status code.
-  </Card>
-  <Card title="Ask" icon="compass" href="/api/ask">
-    Plans, auto mode and what each status means.
-  </Card>
-  <Card title="Idempotency" icon="refresh-cw" href="/api/idempotency">
-    Retry a paid call without paying twice.
-  </Card>
-</CardGroup>
+If the response needs input or an entity selection, ask the person for the
+missing detail and submit a clarified question. If a plan is ready, review
+its total ceiling before calling <code>POST /v2/asks/{id}/run</code>.
+See [Ask](/api/ask) and [Prices and balance](/overview/payment-model).

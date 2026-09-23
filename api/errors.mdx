@@ -3,7 +3,11 @@ title: "Errors"
 description: "One error shape, one code per reason, and whether money moved."
 ---
 
-Every refusal has the same shape. Provider errors never reach you raw.
+Buyer API refusals use the error shape below. The shared source-list route
+can return the Gateway v2 envelope with an <code>errors</code> array for
+a request without a key or with an invalid query. Failed runs return the
+run object with an embedded <code>error</code> and <code>usage</code>, so
+you can see what was charged. Provider errors never reach you raw.
 
 ```json
 {
@@ -19,11 +23,12 @@ Every refusal has the same shape. Provider errors never reach you raw.
 `code` is stable and safe to branch on. `message` is written for a person
 reading a log. Extra fields depend on the code and are listed below.
 
-## Every code
+## Buyer API and shared directory codes
 
 | Status | Code | Extra fields | Meaning |
 | --- | --- | --- | --- |
 | 400 | `invalid_request` | — | Malformed body, `max_spend`, `limit` or `Idempotency-Key` |
+| 400 | <code>invalid_query</code> | — | Invalid directory or endpoint-index filter |
 | 400 | `invalid_workspace` | — | Organisation keys do not take a workspace header |
 | 401 | `invalid_api_key` | — | Missing or unknown key |
 | 401 | `api_key_expired` | — | Past its expiry date; create a new key |
@@ -45,8 +50,11 @@ reading a log. Extra fields depend on the code and are listed below.
 | 409 | `run_cancelled` | — | The run was cancelled and is not restarted |
 | 422 | `invalid_source_input` | `field`, `expected`, `missing`, `schema` | An input is unknown, missing or malformed |
 | 422 | `unsupported` | — | No source can answer this question |
+| 429 | <code>busy</code> | — | Shared directory concurrency limit; retry shortly |
 | 429 | `rate_limit_exceeded` | — | Too many requests; wait and retry with the same key |
 | 502 | `source_error` | — | The source could not complete the run |
+| 503 | <code>planner_unavailable</code> | — | The question could not be interpreted right now |
+| 503 | <code>catalog_unavailable</code> | — | Source directory unavailable; retry shortly |
 | 503 | `source_unavailable` | — | The source is temporarily unreachable |
 | 503 | `service_unavailable` | — | Apiosk could not complete the request; retry with the same key |
 | 503 | `approval_unconfirmed` | — | Read the run's status before retrying; do not start a new request |
@@ -54,11 +62,14 @@ reading a log. Extra fields depend on the code and are listed below.
 
 ## Did money move?
 
-- **Anything that refuses before a purchase says "Nothing was charged."** That covers
-  every `4xx` above except `502`/`504`, which arrive after a source was called.
-- **A failed run** returns `502` with the run body: `usage` shows what was
-  charged, and anything undelivered was refunded or is held until reconciled.
-- **When in doubt, read the run.** `GET /v2/runs/{id}` is free and authoritative.
+- **Authorization, validation and budget refusals before dispatch** do
+  not start a purchase. A failed run can arrive after a source was called;
+  inspect its usage.
+- **A failed run** returns HTTP 502 with the run body: <code>usage</code>
+  shows what was charged, and anything undelivered was refunded or is held
+  until reconciled.
+- **When in doubt, read the run.** <code>GET /v2/runs/{id}</code> is free
+  and authoritative.
 
 ## Retrying
 

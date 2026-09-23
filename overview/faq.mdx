@@ -1,68 +1,54 @@
 ---
 title: "FAQ"
-description: "Short answers to the most common public gateway and dashboard questions."
+description: "Answers for teams integrating the App, buyer API, or MCP server."
 ---
 
-# FAQ
+## Can our team create its own account and API key?
 
-## Do I need API keys to call the gateway?
+Yes. Sign up at [app.apiosk.com/signup](https://app.apiosk.com/signup), choose
+a team account, and confirm your email. The owner or an admin can then open
+**Organisation → API keys** to create a key with permissions and spending
+limits. Keep the secret on your server; it is displayed once.
 
-Not for the raw gateway payment flow. Paid routes use `HTTP 402` plus `x-payment` instead of a normal API key model.
+## Do API calls need a key?
 
-## When should I use managed wallet mode?
+The buyer API in these docs uses an organisation key sent as
+<code>Authorization: Bearer apk_org_live_…</code>. Browse sources with
+<code>GET /v2/sources</code>, inspect executable operations with
+<code>GET /v2/sources/{source_id}</code>, and use [Ask](/api/ask) when the
+source is not known. The hosted [MCP server](/mcp/overview) uses a person's
+account connection instead of an organisation API key.
 
-Use it when you already have a managed agent wallet and want an easier operator flow for repeated paid calls, without building your own raw x402 signing loop for each request.
+## Does seeing a source mean every endpoint is ready to buy?
 
-Note that creating a **new** managed (custodial) wallet is currently unavailable: the legacy dashboard service that derived and encrypted wallet keys has been retired, and creation returns `custodial_wallet_creation_unavailable`. Existing managed wallets keep working and connect tokens can still be minted for them. If you do not have one, use raw x402 mode or create a local wallet with the stdio MCP package.
+No. The directory includes entries that are still discovery-only or
+restricted. Check <code>available_in_v2</code>, <code>readiness</code>, and
+<code>executable_capabilities</code>; then read one source for the currently
+executable operations, exact inputs, and prices. Do not infer availability
+from a source name or its raw endpoint count.
 
-## When should I use raw x402 mode?
+## When does a question cost money?
 
-Use it when you want direct control over payment orchestration, are testing the public protocol path, or are integrating an external payer.
+Browsing and planning are free. A purchase starts only after the plan is
+authorized within its displayed total ceiling. The result includes actual
+charges, any amount still held, and source references. See
+[Prices and balance](/overview/payment-model).
 
-## Can routes be free?
+## What if the question needs more context?
 
-Yes. A listing or endpoint can be configured so payment is not required before forwarding.
+An Ask response can return <code>needs_input</code> with a clarifying
+<code>message</code>, or <code>needs_selection</code> with candidates. Ask
+the person for the missing fact or the right entity. In the app or MCP card,
+continue the saved task using its offered action. In the buyer HTTP API,
+submit a new clarified question; it has no input-continuation endpoint.
 
-## What is the best discovery surface for agents?
+## What if a run takes longer than the request timeout?
 
-`GET /:api_slug/metadata`
+HTTP 202 includes the run id. Read <code>GET /v2/runs/{id}</code> to resume
+from the saved state. Retry a paid request with the same
+<code>Idempotency-Key</code>.
 
-## What is the best execution surface for agents?
+## Can an API key spend a workspace budget?
 
-`POST /:api_slug/execute`
-
-## What does MCP-native mean here?
-
-It means the listing exposes structured agent-facing metadata such as operations, schema hints, tags, and other machine-usable fields that make discovery and use easier for agent tooling.
-
-## When should I use passthrough instead of /execute?
-
-Use passthrough only when you intentionally need the provider-specific route shape or response format.
-
-## Which integration path should I use?
-
-Four paths share the same payment flow: the raw [Gateway API](/guides/consumers) for maximum control, the [remote MCP endpoint](/guides/mcp-clients) for chat-native agents, the [JavaScript SDK](/guides/sdk) for Node backends, and the [Gateway Skill](/guides/gateway-skill) for coding agents working from a shell.
-
-## How do I charge for my own skill or service?
-
-Put a payment check in front of it. The simplest way is to publish it as a listing so the gateway returns `402 Payment Required` for unpaid requests and only forwards paid ones to your origin, no payment code on your side. See [Payment Checks](/guides/payment-check).
-
-## What does Apiosk charge per call?
-
-On the USDC rail, Apiosk takes a flat **2%** platform fee at the moment of settlement, publishers receive 98% of each call, on whichever network the buyer paid. On Base the split is enforced by the on-chain `ApioskSettlement` contract, so it is verifiable from any block explorer. The fee was reduced from 10% to 2% so that publishers keep substantially more of each call.
-
-## Which networks can buyers pay on?
-
-Buyers can pay on Base, Polygon, or Arbitrum. Base is always offered; Polygon and Arbitrum are enabled only when the configured facilitator advertises support for them, otherwise the gateway falls back to Base-only. Solana is not a settlement network. A paid route's `402` lists one `accepts` entry per network the API is configured for, all at the same USDC price, and always includes a Base entry as fallback, so a `402` is always payable. See [Multi-chain Settlement](/guides/multichain).
-
-## What does Apiosk charge on SEPA?
-
-Nothing per transaction. SEPA Direct Debit is priced as a monthly subscription tier, only Mollie's standard SEPA fee applies on the bank side.
-
-## Can I force a specific payment rail?
-
-Yes. Send `X-Apiosk-Rail: x402`, `X-Apiosk-Rail: sepa`, or `X-Apiosk-Rail: credits` on the request. If you omit the header, the gateway picks the cheapest viable rail for the buyer and falls back automatically if the preferred rail is unavailable.
-
-## Where should I put private implementation details?
-
-Nowhere in the public docs, listing metadata, or endpoint docs. Keep private infrastructure, secrets, and internal runbooks out of the public documentation surface.
+No. Organisation keys spend the main balance. People and assistant
+connections can spend a workspace budget when operating in that workspace.

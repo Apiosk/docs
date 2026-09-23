@@ -2,7 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "palm",
   "name": "Apiosk",
-  "description": "Buy verifiable data per call: the API, the MCP server, the app, and publishing on the x402 rail.",
+  "description": "Ask a question, review the price, and get sourced data through the App, API, or MCP server.",
   "colors": {
     "primary": "#8a4ef7",
     "light": "#b39bff",
@@ -94,8 +94,7 @@
             "group": "Assistants",
             "pages": [
               "mcp/overview",
-              "guides/mcp-clients",
-              "guides/gateway-skill"
+              "guides/mcp-clients"
             ]
           }
         ]
@@ -112,95 +111,231 @@
             ]
           }
         ]
-      },
-      {
-        "tab": "Publishing",
-        "groups": [
-          {
-            "group": "Provider dashboard",
-            "pages": [
-              "dashboard/overview",
-              "dashboard/workflow",
-              "dashboard/publishing",
-              "dashboard/integrations",
-              "dashboard/agent-wallets",
-              "dashboard/manual-payments",
-              "dashboard/payments-and-usage",
-              "dashboard/gateway-testing"
-            ]
-          },
-          {
-            "group": "Publish an API",
-            "pages": [
-              "guides/publishers",
-              "guides/sdk-mode",
-              "guides/sdk-middleware",
-              "guides/integrations-api",
-              "guides/provider-sdk",
-              "guides/publisher-mcp",
-              "guides/payment-check",
-              "guides/publisher-lifecycle",
-              "guides/listing-metadata"
-            ]
-          },
-          {
-            "group": "Marketplace",
-            "pages": [
-              "guides/connect-marketplace",
-              "guides/boundaries"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "Apiosk Pay",
-        "groups": [
-          {
-            "group": "Hosted checkout",
-            "pages": [
-              "pay/overview",
-              "pay/quickstart",
-              "pay/sellers",
-              "pay/checkout-api",
-              "pay/lifecycle",
-              "pay/webhooks",
-              "pay/payment-links"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "x402 rail",
-        "groups": [
-          {
-            "group": "Buying over x402",
-            "pages": [
-              "guides/consumers",
-              "guides/bazaar-discovery",
-              "guides/sdk",
-              "guides/preflight",
-              "guides/execute",
-              "guides/execute-capabilities",
-              "guides/payment-options",
-              "guides/x402-versions",
-              "guides/multichain",
-              "guides/payment-mode-comparison",
-              "guides/errors-and-retries",
-              "guides/examples"
-            ]
-          },
-          {
-            "group": "Reference",
-            "pages": [
-              "reference/overview"
-            ]
-          }
-        ],
-        "openapi": "openapi/public-gateway.json"
       }
     ]
   },
-  "redirects": [],
+  "redirects": [
+    {
+      "source": "/dashboard/agent-wallets",
+      "destination": "/"
+    },
+    {
+      "source": "/dashboard/gateway-testing",
+      "destination": "/"
+    },
+    {
+      "source": "/dashboard/integrations",
+      "destination": "/"
+    },
+    {
+      "source": "/dashboard/manual-payments",
+      "destination": "/"
+    },
+    {
+      "source": "/dashboard/overview",
+      "destination": "/"
+    },
+    {
+      "source": "/dashboard/payments-and-usage",
+      "destination": "/"
+    },
+    {
+      "source": "/dashboard/publishing",
+      "destination": "/"
+    },
+    {
+      "source": "/dashboard/workflow",
+      "destination": "/"
+    },
+    {
+      "source": "/guides/bazaar-discovery",
+      "destination": "/api/sources"
+    },
+    {
+      "source": "/guides/boundaries",
+      "destination": "/"
+    },
+    {
+      "source": "/guides/connect-marketplace",
+      "destination": "/"
+    },
+    {
+      "source": "/guides/consumers",
+      "destination": "/overview/quickstart"
+    },
+    {
+      "source": "/guides/errors-and-retries",
+      "destination": "/api/errors"
+    },
+    {
+      "source": "/guides/examples",
+      "destination": "/overview/quickstart"
+    },
+    {
+      "source": "/guides/execute-capabilities",
+      "destination": "/api/execute"
+    },
+    {
+      "source": "/guides/execute",
+      "destination": "/api/execute"
+    },
+    {
+      "source": "/guides/gateway-skill",
+      "destination": "/overview/quickstart"
+    },
+    {
+      "source": "/guides/integrations-api",
+      "destination": "/"
+    },
+    {
+      "source": "/guides/listing-metadata",
+      "destination": "/api/sources"
+    },
+    {
+      "source": "/guides/multichain",
+      "destination": "/overview/payment-model"
+    },
+    {
+      "source": "/guides/payment-check",
+      "destination": "/"
+    },
+    {
+      "source": "/guides/payment-mode-comparison",
+      "destination": "/overview/payment-model"
+    },
+    {
+      "source": "/guides/payment-options",
+      "destination": "/overview/payment-model"
+    },
+    {
+      "source": "/guides/preflight",
+      "destination": "/"
+    },
+    {
+      "source": "/guides/provider-sdk",
+      "destination": "/"
+    },
+    {
+      "source": "/guides/publisher-lifecycle",
+      "destination": "/"
+    },
+    {
+      "source": "/guides/publisher-mcp",
+      "destination": "/"
+    },
+    {
+      "source": "/guides/publishers",
+      "destination": "/"
+    },
+    {
+      "source": "/guides/sdk-middleware",
+      "destination": "/"
+    },
+    {
+      "source": "/guides/sdk-mode",
+      "destination": "/"
+    },
+    {
+      "source": "/guides/sdk",
+      "destination": "/"
+    },
+    {
+      "source": "/guides/x402-versions",
+      "destination": "/overview/payment-model"
+    },
+    {
+      "source": "/pay/checkout-api",
+      "destination": "/"
+    },
+    {
+      "source": "/pay/lifecycle",
+      "destination": "/"
+    },
+    {
+      "source": "/pay/overview",
+      "destination": "/"
+    },
+    {
+      "source": "/pay/payment-links",
+      "destination": "/"
+    },
+    {
+      "source": "/pay/quickstart",
+      "destination": "/"
+    },
+    {
+      "source": "/pay/sellers",
+      "destination": "/"
+    },
+    {
+      "source": "/pay/webhooks",
+      "destination": "/"
+    },
+    {
+      "source": "/reference/overview",
+      "destination": "/api/sources"
+    },
+    {
+      "source": "/api-reference/discovery/api-detail",
+      "destination": "/api/sources"
+    },
+    {
+      "source": "/api-reference/discovery/health",
+      "destination": "/overview/quickstart"
+    },
+    {
+      "source": "/api-reference/discovery/list-apis",
+      "destination": "/api/sources"
+    },
+    {
+      "source": "/api-reference/discovery/listing-groups",
+      "destination": "/api/sources"
+    },
+    {
+      "source": "/api-reference/discovery/listings-by-type",
+      "destination": "/api/sources"
+    },
+    {
+      "source": "/api-reference/execution/agent-metadata",
+      "destination": "/api/sources"
+    },
+    {
+      "source": "/api-reference/execution/execute-api",
+      "destination": "/api/execute"
+    },
+    {
+      "source": "/api-reference/metrics/wallet-balance",
+      "destination": "/api/billing"
+    },
+    {
+      "source": "/api-reference/metrics/wallet-usage",
+      "destination": "/api/billing"
+    },
+    {
+      "source": "/api-reference/publishing/deactivate-listing",
+      "destination": "/"
+    },
+    {
+      "source": "/api-reference/publishing/endpoint-docs",
+      "destination": "/"
+    },
+    {
+      "source": "/api-reference/publishing/my-apis",
+      "destination": "/"
+    },
+    {
+      "source": "/api-reference/publishing/register-api",
+      "destination": "/"
+    },
+    {
+      "source": "/api-reference/publishing/update-listing",
+      "destination": "/"
+    },
+    {
+      "source": "/openapi/public-gateway.json",
+      "destination": "/openapi/apiosk-api.json"
+    }
+  ],
   "appearance": {
     "default": "light",
     "strict": true
