@@ -4,3 +4,21 @@
 #content-container > div {
   max-width: none;
 }
+
+/* The theme pads the page 96px from the sidebar. Halve it. */
+@media (min-width: 1024px) {
+  #content-container {
+    padding-left: 3rem !important;
+    padding-right: 3rem !important;
+  }
+}
+
+/* Below 1536px the "On this page" column takes 350px from a 1280px laptop
+   screen and leaves the text about 500px wide. Hide it there. The same slot
+   holds the request and response examples on API reference pages, so only
+   hide it when it holds the table of contents. */
+@media (max-width: 1535px) {
+  #content-side-layout:has(#table-of-contents) {
+    display: none !important;
+  }
+}
