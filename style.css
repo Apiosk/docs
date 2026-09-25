@@ -1,0 +1,6 @@
+/* Mintlify's palm theme caps the page column at max-w-5xl (1024px), which
+   leaves the content at about 670px on a wide screen. Let it use the full
+   width beside the sidebar. */
+#content-container > div {
+  max-width: none;
+}
