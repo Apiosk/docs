@@ -158,6 +158,50 @@
           "question": {
             "type": "string"
           },
+          "capability": {
+            "type": "string",
+            "description": "European capability slug for a structured capability plan or run."
+          },
+          "normalized_records": {
+            "type": "array",
+            "description": "Contract-extracted provider facts grouped by subject. Equal facts for one subject are combined with all their source references; absent fields are never invented.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "entity_ref": { "type": "string", "format": "uuid" },
+                "entity_refs": {
+                  "type": "array",
+                  "description": "Original subject references joined by a matching stable identifier.",
+                  "items": { "type": "string", "format": "uuid" }
+                },
+                "facts": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": { "type": "string" },
+                      "value": {},
+                      "observed_at": { "type": "string", "format": "date-time" },
+                      "expires_at": { "type": "string", "format": "date-time" },
+                      "sources": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "source_id": { "type": "string" },
+                            "result_ref": { "type": "string", "format": "uuid" },
+                            "source_url": { "type": ["string", "null"] },
+                            "retrieved_at": { "type": "string", "format": "date-time" },
+                            "source_pointer": { "type": ["string", "null"] }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
           "plan": {
             "type": "object",
             "properties": {
@@ -507,6 +551,146 @@
           "unavailable_reason": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "EuropeanCapabilityRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "capability"
+        ],
+        "properties": {
+          "capability": {
+            "type": "string",
+            "enum": [
+              "eu.company.profile",
+              "eu.tenders.search",
+              "eu.statistics.query"
+            ]
+          },
+          "country": {
+            "type": "string",
+            "pattern": "^[A-Za-z]{2}$",
+            "description": "Optional two-letter ISO country code used for source routing."
+          },
+          "input": {
+            "type": "object",
+            "description": "Structured fact-type input; inspect resolve for exact field schemas."
+          },
+          "operation": {
+            "type": "string",
+            "description": "Optional exact operation selector, required for CBS observation metrics."
+          }
+        }
+      },
+      "EuropeanCapabilityResolution": {
+        "type": "object",
+        "required": [
+          "capability",
+          "sources",
+          "ready_source_count"
+        ],
+        "properties": {
+          "capability": {
+            "type": "string"
+          },
+          "country": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ready_source_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "source_id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "primary",
+                    "supplementary"
+                  ]
+                },
+                "ready": {
+                  "type": "boolean"
+                },
+                "operations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "operation": {
+                        "type": "string"
+                      },
+                      "endpoint_id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "method": {
+                        "type": "string"
+                      },
+                      "path": {
+                        "type": "string"
+                      },
+                      "inputs": {
+                        "type": "array",
+                        "items": {
+                          "type": "object"
+                        }
+                      },
+                      "input": {
+                        "type": "object"
+                      },
+                      "missing_input": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "invalid_input": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "ready": {
+                        "type": "boolean"
+                      },
+                      "output": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "freshness_seconds": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      },
+                      "price": {
+                        "type": "object"
+                      },
+                      "run_url": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -14063,6 +14247,88 @@
           },
           "403": {
             "description": "Missing sources:read scope"
+          }
+        }
+      }
+    },
+    "/v2/capabilities/resolve": {
+      "post": {
+        "summary": "Find fitting European source operations",
+        "description": "Free endpoint routing for a structured European capability. Requires sources:read; no provider call or charge.",
+        "operationId": "resolveEuropeanCapability",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EuropeanCapabilityRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted endpoint operations, input fit, price and freshness.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EuropeanCapabilityResolution"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid country or request"
+          },
+          "401": {
+            "description": "Invalid API key"
+          },
+          "403": {
+            "description": "Insufficient scope"
+          },
+          "422": {
+            "description": "No fitting operation or invalid input"
+          }
+        }
+      }
+    },
+    "/v2/capabilities/plan": {
+      "post": {
+        "summary": "Price a structured European capability",
+        "description": "Save one total-price plan from fitting operations. Requires ask:create. Execution requires a separate POST /v2/asks/{id}/run with ask:execute.",
+        "operationId": "planEuropeanCapability",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EuropeanCapabilityRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved plan for review and explicit approval.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerRun"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid country or request"
+          },
+          "401": {
+            "description": "Invalid API key"
+          },
+          "403": {
+            "description": "Insufficient scope"
+          },
+          "422": {
+            "description": "No fitting operation or invalid input"
           }
         }
       }

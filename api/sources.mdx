@@ -75,6 +75,79 @@ A directory entry with no accepted operation can return
 discoverable so you can see its published metadata; it cannot be bought
 through the buyer API until a contract is accepted.
 
+## Resolve a European capability to fitting sources
+
+~~~http
+POST /v2/capabilities/resolve
+~~~
+
+Requires <code>sources:read</code>. This read-only route accepts one of
+<code>eu.company.profile</code>, <code>eu.tenders.search</code> or
+<code>eu.statistics.query</code>, an optional two-letter country, and
+structured input using the fact-type names returned by source detail.
+An optional <code>operation</code> narrows the response to one metric or
+lookup operation within the capability.
+
+~~~bash
+curl https://gateway.apiosk.com/v2/capabilities/resolve \
+  -H "Authorization: Bearer $APIOSK_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"capability":"eu.company.profile","country":"NL","input":{"company.name":"Mollie B.V."}}'
+~~~
+
+The response returns primary and supplementary sources with only their
+active, accepted operations. Each operation names its exact endpoint,
+required and missing inputs, output fields, freshness interval, current
+price, and <code>run_url</code>. <code>ready</code> means the supplied
+inputs fit that operation's schema; it is not evidence that the upstream
+source has a record for the subject. <code>ready_source_count</code>
+counts sources with at least one ready operation. No provider is called and
+no balance is charged by resolution.
+
+For Eurostat data, send a dataset code in
+<code>eurostat.input.dataset</code> and a country. Apiosk fills the
+<code>eurostat.input.geo</code> endpoint parameter from that country, including
+Eurostat's <code>EL</code> and <code>UK</code> codes for Greece and the United
+Kingdom. It does not choose a dataset or statistical measure on your behalf.
+
+To let Apiosk choose source operations from the structured input, create one
+priced plan:
+
+~~~http
+POST /v2/capabilities/plan
+~~~
+
+This route requires <code>ask:create</code> and accepts the same body as
+resolution. It returns the saved plan with one total ceiling and no purchase.
+Review the exact steps, then call <code>POST /v2/asks/{id}/run</code> with
+<code>ask:execute</code> and <code>max_spend</code> to approve it once. The
+ordinary worker executes the selected sources and returns saved, sourced
+results. Capability plans and runs also return <code>normalized_records</code>:
+contract-extracted facts grouped by subject, with observed and expiry times.
+Subjects with the same country-specific or globally unique identifier are
+combined; identical facts retain all source references. Source documents
+remain in <code>results</code> for inspection; subjects are never merged by
+name alone. The API accepts an <code>Idempotency-Key</code> for safe plan
+retries.
+
+For a direct, single-source call, use
+<code>POST /v2/sources/{source_id}/run</code> with the returned
+<code>operation</code> and that operation's <code>input</code>. This uses the
+same pricing, key spending limits, ledger and result metadata. It executes
+immediately within the key's spending limits.
+
+For CBS observation tables with no required parameters, specify the exact
+<code>operation</code> when planning, such as
+<code>statistics.cbs-company-counts</code>. The planner does not guess a
+statistical metric from a country alone. General questions can use
+<code>POST /v2/ask</code> to get a model-built plan.
+
+The tender group currently offers TenderNed public-contract browsing and
+organisation-based TED matches. It does not expose general TED Search API
+queries through Apiosk yet. EU Funding & Tenders provides funding calls,
+not procurement notices, so it is outside <code>eu.tenders.search</code>.
+Likewise PDOK location data is outside <code>eu.statistics.query</code>.
+
 ## Browse endpoints inside a source
 
 The compact endpoint index is useful when a provider publishes many services:
