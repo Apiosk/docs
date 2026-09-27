@@ -14055,6 +14055,17 @@
             }
           },
           {
+            "name": "service",
+            "in": "query",
+            "description": "Narrow a grouped source (Pulse Network) to one of its services, by the service slug listed in its /v2/sources row. Omit it to list every service of the source.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[A-Za-z0-9._-]+$"
+            }
+          },
+          {
             "name": "offset",
             "in": "query",
             "schema": {
