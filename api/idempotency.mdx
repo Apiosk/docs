@@ -32,7 +32,9 @@ operation.
 | --- | --- |
 | `POST /v1/execute/{source}/{operation}` | Honours `Idempotency-Key` |
 | `POST /v2/sources/{source_id}/run` | Honours `Idempotency-Key` |
-| `POST /v2/ask` | Honours `Idempotency-Key`; a retry returns the same plan or run |
+| `POST /v2/ask` (question) | Free discovery; retries may reflect a refreshed catalogue |
+| `POST /v2/execute` (selected API) | Requires `Idempotency-Key`; same selection/input recovers one purchase |
+| `POST /v2/ask/plan` and workflow Ask | Honours `Idempotency-Key`; a retry returns the same plan or run |
 | `POST /v2/asks/{id}/run` | Idempotent by itself — an ask runs once, key or no key |
 | `POST /v2/asks/{id}/continue` | Requires `Idempotency-Key`; same state/action/input resumes the same run. `limit` and `wait_seconds` may change. |
 

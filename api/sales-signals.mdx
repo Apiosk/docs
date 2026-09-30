@@ -35,7 +35,7 @@ underlying <code>source_id</code>.
 For a question involving several signal types, request a free plan first:
 
 ~~~bash
-curl https://gateway.apiosk.com/v2/ask \
+curl https://gateway.apiosk.com/v2/ask/plan \
   -H "Authorization: Bearer $APIOSK_KEY" \
   -H "Content-Type: application/json" \
   -d '{"question":"Find recent tenders and company news for Dutch cybersecurity companies","execution_mode":"plan","limit":10}'

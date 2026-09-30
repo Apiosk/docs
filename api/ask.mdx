@@ -1,27 +1,97 @@
 ---
 title: "Ask"
-description: "A question in, a priced plan across sources out, and results when you run it."
+description: "Get the same API choices as the Ask page, then execute the selected API with your inputs."
 ---
 
-Use Ask when you do not know which source answers the question, or when the
-answer needs several. Apiosk reads the question, matches sources and
-operations, prices a plan, and runs it on your approval.
+## Discover APIs for a question
 
-Ask and [direct calls](/api/execute) use the same source catalogue, the same
-prices and the same ledger. There are no Ask-only sources.
+`POST /v2/ask` requires `ask:create`. It uses the Ask page's interpreter and
+source searches, returning choices from Apiosk and Coinbase Bazaar. Discovery
+makes no paid provider request and creates no plan or approval.
 
-Use a [fixed workflow](/api/workflows) for a reproducible company or tender dossier with explicit country coverage. Supply either `question` or `workflow`.
+```bash
+curl https://gateway.apiosk.com/v2/ask \
+  -H "Authorization: Bearer $APIOSK_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"question":"Find filed accounts for Mollie B.V."}'
+```
 
-## Plan a question
+The body contains `question` only: 1–16000 UTF-16 code units. The response has
+`parsed_request`, `apis`, both origin results in `searches`, and `errors`.
+`status` is `choices`, `needs_input` when no choices match, or `partial` if an
+origin search is unavailable. Inspect every choice's `executable` flag.
+
+| Choice field | Meaning |
+| --- | --- |
+| `api_id` | Opaque selection ID to copy into `/v2/execute`; do not construct it |
+| `capability` | Exact operation for this selection; copy it alongside `api_id` |
+| `name`, `source_slug`, `origin`, `url` | Source/provider identity and published URL |
+| `executable` | The server has admitted an executable contract for this choice |
+| `inputs` | Declared input fields, required flags and JSON schemas |
+| `input_values` | Literal values bound from the question and declared defaults |
+| `missing_inputs` | Required fields you must supply before execution |
+| `outputs` | Declared output fields and schemas, or `null` if unpublished |
+| `lookup` | Available native name lookup when a company identifier is missing |
+| `buyer_price` | Current per-call buyer price in millionths of USDC (`buyer_atomic`) |
+
+Output **values** arrive after execution. Discovery returns output contracts;
+it does not fabricate source data. A directory-only choice has
+`executable: false`. Even an executable choice may need additional inputs.
+Review the fields and total spending cap; a native lookup can add steps and cost.
+
+## Execute the selected API
+
+`POST /v2/execute` requires `sources:execute`, `Idempotency-Key`, and `max_spend`.
+It uses the same selected-source preparation, approval, executor and ledger as
+the Ask page. It does not reinterpret the question or choose a replacement API.
+
+```bash
+curl https://gateway.apiosk.com/v2/execute \
+  -H "Authorization: Bearer $APIOSK_KEY" \
+  -H "Idempotency-Key: my-selected-api-request-1" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "api_id":"COPY_FROM_ASK",
+    "capability":"COPY_FROM_ASK",
+    "input":{"company.name":"Mollie B.V."},
+    "max_spend":"0.10",
+    "wait_seconds":25
+  }'
+```
+
+Replace the example `input` with the selected choice's `input_values`, plus any
+missing fields. Preserve the exact field names. `max_spend` is the approved
+**total** in USD, not an atomic amount. The current price, key limits and balance
+are checked before purchase. Reuse the same idempotency key and selection/input
+for retries; changed selection/input under that key returns `409`.
+
+Registered APIs return `completed` with `results`/`data` and `usage`. External
+providers return the saved purchase view: `succeeded`, `result`, `result_present`
+and ledger-backed `billing`. Both return `id`; `running` uses HTTP `202`.
+Read `GET /v2/runs/{id}` to recover progress and results. A successful payment
+with `result_present: false` needs read-only recovery, never another purchase.
+External execution is asynchronous; `wait_seconds` applies to registered APIs.
+
+To verify a deployment, send the same question through Ask and this endpoint,
+compare source IDs, capabilities, input/output contracts and prices, then run
+one selected API within an approved cap. Repeat the identical execution request
+and check that the run ID, saved output and ledger charge are unchanged.
+
+## Optional multi-source planner
+
+The previous question-to-plan contract is available at `/v2/ask/plan`. Move
+clients that send `execution_mode`, `limit` or `wait_seconds` with a question
+to that path. Its saved-run, approval and continuation endpoints are unchanged.
+Explicit [workflow requests](/api/workflows) remain supported by `/v2/ask`.
 
 ```http
-POST /v2/ask
+POST /v2/ask/plan
 ```
 
 Requires `ask:create`.
 
 ```bash
-curl https://gateway.apiosk.com/v2/ask \
+curl https://gateway.apiosk.com/v2/ask/plan \
   -H "Authorization: Bearer $APIOSK_KEY" \
   -H "Idempotency-Key: intent-signals-2026-09-22" \
   -H "Content-Type: application/json" \

@@ -8,6 +8,13 @@ name the source and the operation, and Apiosk runs exactly that.
 
 Requires `sources:execute`.
 
+## Execute an Ask choice
+
+Use `POST /v2/execute` with `api_id`, `capability`, `input`, and `max_spend` from
+the [Ask choice flow](/api/ask#execute-the-selected-api). This form requires
+`Idempotency-Key` and uses the same selected-source execution as the Ask page.
+The source/operation paths below remain available.
+
 ## Request
 
 ```http

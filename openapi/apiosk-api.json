@@ -3,7 +3,7 @@
   "info": {
     "title": "Apiosk API",
     "version": "2.0.0",
-    "description": "Buy verifiable data per call with an organisation API key. Discover sources, run one directly, or let Apiosk plan across sources. Amounts are USD; every amount carries an exact micro-USD integer."
+    "description": "Buy verifiable data per call with an organisation API key. Ask returns the same API choices as the App; execute runs the selected API with your inputs and approved cap. Direct source calls and optional multi-source plans remain available."
   },
   "servers": [
     {
@@ -168,31 +168,63 @@
             "items": {
               "type": "object",
               "properties": {
-                "entity_ref": { "type": "string", "format": "uuid" },
+                "entity_ref": {
+                  "type": "string",
+                  "format": "uuid"
+                },
                 "entity_refs": {
                   "type": "array",
                   "description": "Original subject references joined by a matching stable identifier.",
-                  "items": { "type": "string", "format": "uuid" }
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
                 },
                 "facts": {
                   "type": "array",
                   "items": {
                     "type": "object",
                     "properties": {
-                      "type": { "type": "string" },
+                      "type": {
+                        "type": "string"
+                      },
                       "value": {},
-                      "observed_at": { "type": "string", "format": "date-time" },
-                      "expires_at": { "type": "string", "format": "date-time" },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "expires_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
                       "sources": {
                         "type": "array",
                         "items": {
                           "type": "object",
                           "properties": {
-                            "source_id": { "type": "string" },
-                            "result_ref": { "type": "string", "format": "uuid" },
-                            "source_url": { "type": ["string", "null"] },
-                            "retrieved_at": { "type": "string", "format": "date-time" },
-                            "source_pointer": { "type": ["string", "null"] }
+                            "source_id": {
+                              "type": "string"
+                            },
+                            "result_ref": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "source_url": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "retrieved_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "source_pointer": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
                           }
                         }
                       }
@@ -693,6 +725,233 @@
             }
           }
         }
+      },
+      "AskChoice": {
+        "type": "object",
+        "properties": {
+          "api_id": {
+            "type": "string",
+            "description": "Opaque executable selection identity. Copy exactly."
+          },
+          "capability": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "apiosk",
+              "coinbase"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "source_slug": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "executable": {
+            "type": "boolean"
+          },
+          "availability": {
+            "type": "string"
+          },
+          "inputs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "required": {
+                  "type": "boolean"
+                },
+                "schema": {
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "field",
+                "schema"
+              ]
+            }
+          },
+          "input_values": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "missing_inputs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "outputs": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "required": {
+                  "type": "boolean"
+                },
+                "schema": {
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "field",
+                "schema"
+              ]
+            },
+            "description": "Declared fields/schemas only; actual output values arrive after execution."
+          },
+          "lookup": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "buyer_price": {
+            "type": "object",
+            "properties": {
+              "currency": {
+                "type": "string"
+              },
+              "provider_atomic": {
+                "type": "string"
+              },
+              "buyer_atomic": {
+                "type": "string",
+                "description": "Per-call price in millionths of USDC. Native lookups can add to the total."
+              }
+            }
+          }
+        },
+        "required": [
+          "origin",
+          "name",
+          "executable"
+        ]
+      },
+      "AskChoices": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "choices",
+              "needs_input",
+              "partial"
+            ]
+          },
+          "question": {
+            "type": "string"
+          },
+          "parsed_request": {
+            "type": "object"
+          },
+          "apis": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AskChoice"
+            }
+          },
+          "searches": {
+            "type": "object"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "question",
+          "parsed_request",
+          "apis",
+          "searches",
+          "errors"
+        ]
+      },
+      "ExternalPurchase": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "purchase_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "requires_approval",
+              "running",
+              "succeeded",
+              "failed"
+            ]
+          },
+          "source": {
+            "type": "object"
+          },
+          "quote": {
+            "type": "object"
+          },
+          "result": {},
+          "result_present": {
+            "type": "boolean"
+          },
+          "result_truncated": {
+            "type": "boolean"
+          },
+          "billing": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "error": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "result",
+          "result_present",
+          "billing"
+        ]
       }
     }
   },
@@ -5290,10 +5549,10 @@
         }
       }
     },
-    "/v2/ask": {
+    "/v2/ask/plan": {
       "post": {
-        "summary": "Ask a question",
-        "operationId": "ask",
+        "summary": "Plan a question across sources",
+        "operationId": "planAsk",
         "description": "Plan across sources. Free in plan mode. Requires ask:create, and ask:execute for auto mode.",
         "parameters": [
           {
@@ -6949,6 +7208,216 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/ask": {
+      "post": {
+        "summary": "Discover the same API choices as the Ask page",
+        "operationId": "ask",
+        "description": "Requires ask:create. A question uses the shared App interpreter/search and creates no task, approval or paid provider request. Explicit workflow objects retain their plan/auto behavior.",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "description": "Retry-safe key: the same key with the same body pays once.",
+            "example": "nomi-request-983472"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "question": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 16000,
+                        "description": "Limit counted in UTF-16 code units."
+                      }
+                    },
+                    "required": [
+                      "question"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "execution_mode": {
+                        "type": "string",
+                        "enum": [
+                          "plan",
+                          "auto"
+                        ],
+                        "default": "plan"
+                      },
+                      "max_spend": {
+                        "type": "number",
+                        "description": "Required with auto.",
+                        "example": 1
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 50
+                      },
+                      "wait_seconds": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 55
+                      },
+                      "workflow": {
+                        "$ref": "#/components/schemas/WorkflowInput"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                      "workflow"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Question source choices, or a workflow plan/run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AskChoices"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BuyerRun"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Still running",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerRun"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "invalid_api_key, api_key_expired or api_key_revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "insufficient_balance or spend_limit_exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "insufficient_scope or organisation_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "source_not_found or operation_not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "idempotency_conflict or request_in_progress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "invalid_source_input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate_limit_exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "source_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "service_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
                 }
               }
             }
@@ -8845,7 +9314,8 @@
                         "needs_selection",
                         "unsupported",
                         "cancelled",
-                        "failed"
+                        "failed",
+                        "succeeded"
                       ]
                     },
                     "question": {
@@ -9116,8 +9586,38 @@
                     },
                     "continuation": {
                       "$ref": "#/components/schemas/Continuation"
+                    },
+                    "purchase_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "source": {
+                      "type": "object"
+                    },
+                    "quote": {
+                      "type": "object"
+                    },
+                    "result": {},
+                    "result_present": {
+                      "type": "boolean"
+                    },
+                    "result_truncated": {
+                      "type": "boolean"
+                    },
+                    "billing": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
+                    "error": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
                     }
-                  }
+                  },
+                  "description": "Registered runs use completed/results/usage. External purchases use succeeded/result/result_present/billing. Running purchases return 202; recovery never starts another purchase."
                 }
               }
             }
@@ -9144,7 +9644,8 @@
                         "needs_selection",
                         "unsupported",
                         "cancelled",
-                        "failed"
+                        "failed",
+                        "succeeded"
                       ]
                     },
                     "question": {
@@ -9415,8 +9916,38 @@
                     },
                     "continuation": {
                       "$ref": "#/components/schemas/Continuation"
+                    },
+                    "purchase_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "source": {
+                      "type": "object"
+                    },
+                    "quote": {
+                      "type": "object"
+                    },
+                    "result": {},
+                    "result_present": {
+                      "type": "boolean"
+                    },
+                    "result_truncated": {
+                      "type": "boolean"
+                    },
+                    "billing": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
+                    "error": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
                     }
-                  }
+                  },
+                  "description": "Registered runs use completed/results/usage. External purchases use succeeded/result/result_present/billing. Running purchases return 202; recovery never starts another purchase."
                 }
               }
             }
@@ -12777,7 +13308,8 @@
                         "needs_selection",
                         "unsupported",
                         "cancelled",
-                        "failed"
+                        "failed",
+                        "succeeded"
                       ]
                     },
                     "question": {
@@ -13048,8 +13580,38 @@
                     },
                     "continuation": {
                       "$ref": "#/components/schemas/Continuation"
+                    },
+                    "purchase_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "source": {
+                      "type": "object"
+                    },
+                    "quote": {
+                      "type": "object"
+                    },
+                    "result": {},
+                    "result_present": {
+                      "type": "boolean"
+                    },
+                    "result_truncated": {
+                      "type": "boolean"
+                    },
+                    "billing": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
+                    "error": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
                     }
-                  }
+                  },
+                  "description": "Registered runs use completed/results/usage. External purchases use succeeded/result/result_present/billing. Running purchases return 202; recovery never starts another purchase."
                 }
               }
             }
@@ -13076,7 +13638,8 @@
                         "needs_selection",
                         "unsupported",
                         "cancelled",
-                        "failed"
+                        "failed",
+                        "succeeded"
                       ]
                     },
                     "question": {
@@ -13347,8 +13910,38 @@
                     },
                     "continuation": {
                       "$ref": "#/components/schemas/Continuation"
+                    },
+                    "purchase_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "source": {
+                      "type": "object"
+                    },
+                    "quote": {
+                      "type": "object"
+                    },
+                    "result": {},
+                    "result_present": {
+                      "type": "boolean"
+                    },
+                    "result_truncated": {
+                      "type": "boolean"
+                    },
+                    "billing": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
+                    "error": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
                     }
-                  }
+                  },
+                  "description": "Registered runs use completed/results/usage. External purchases use succeeded/result/result_present/billing. Running purchases return 202; recovery never starts another purchase."
                 }
               }
             }
@@ -14340,6 +14933,211 @@
           },
           "422": {
             "description": "No fitting operation or invalid input"
+          }
+        }
+      }
+    },
+    "/v2/execute": {
+      "post": {
+        "summary": "Execute the API selected from Ask",
+        "operationId": "executeSelectedApi",
+        "description": "Requires sources:execute. Uses the same selected preparation, authorization and balance executor as the App. Reusing the idempotency key with the same selection/input recovers the saved run. The existing signed App/MCP continuation body remains supported separately.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "api_id": {
+                    "type": "string"
+                  },
+                  "capability": {
+                    "type": "string"
+                  },
+                  "input": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "max_spend": {
+                    "oneOf": [
+                      {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ],
+                    "description": "Explicit approved total in USD; checked before purchase."
+                  },
+                  "wait_seconds": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 55,
+                    "description": "Registered APIs only; external purchases return asynchronously."
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50
+                  }
+                },
+                "required": [
+                  "api_id",
+                  "max_spend"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/BuyerRun"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ExternalPurchase"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Still running",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/BuyerRun"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ExternalPurchase"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "invalid_api_key, api_key_expired or api_key_revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "insufficient_balance or spend_limit_exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "insufficient_scope or organisation_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "source_not_found or operation_not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "idempotency_conflict or request_in_progress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "invalid_source_input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate_limit_exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "source_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "service_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerError"
+                }
+              }
+            }
           }
         }
       }

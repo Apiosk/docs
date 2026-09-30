@@ -17,7 +17,7 @@ and keep it unchanged on transport retries.
 
 ## Read the current continuation
 
-`POST /v2/ask`, `POST /v2/asks/{id}/run` and `GET /v2/runs/{id}` return
+`POST /v2/ask/plan`, `POST /v2/asks/{id}/run` and `GET /v2/runs/{id}` return
 `continuation` when the task has a supported action:
 
 - `select_entity`: choose an `entity_ref` from the returned `candidates`.

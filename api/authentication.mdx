@@ -35,9 +35,9 @@ A key is created with the permissions it needs, and nothing else.
 | Scope | Allows |
 | --- | --- |
 | `sources:read` | `GET /v2/sources`, `GET /v2/sources/{source_id}` |
-| `sources:execute` | `POST /v1/execute/{source}/{operation}`, `POST /v2/sources/{source_id}/run` |
-| `ask:create` | `POST /v2/ask` with `execution_mode: "plan"` |
-| `ask:execute` | `POST /v2/asks/{id}/run`, and `POST /v2/ask` with `execution_mode: "auto"` |
+| `sources:execute` | `POST /v2/execute` (selected API), `POST /v1/execute/{source}/{operation}`, `POST /v2/sources/{source_id}/run` |
+| `ask:create` | `POST /v2/ask` discovery and `POST /v2/ask/plan` planning |
+| `ask:execute` | `POST /v2/asks/{id}/run`, and `POST /v2/ask/plan` with `execution_mode: "auto"` |
 | `billing:read` | `GET /v2/balance`, `GET /v2/usage` |
 
 ## Check that a key works
