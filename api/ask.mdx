@@ -9,6 +9,10 @@ description: "Get the same API choices as the Ask page, then execute the selecte
 source searches, returning choices from Apiosk and Coinbase Bazaar. Discovery
 makes no paid provider request and creates no plan or approval.
 
+The two surfaces share the discovery implementation. Separate requests can
+produce different wording or alternative providers because model interpretation
+and directory listings vary; responses are not guaranteed to be identical.
+
 ```bash
 curl https://gateway.apiosk.com/v2/ask \
   -H "Authorization: Bearer $APIOSK_KEY" \
@@ -76,6 +80,19 @@ To verify a deployment, send the same question through Ask and this endpoint,
 compare source IDs, capabilities, input/output contracts and prices, then run
 one selected API within an approved cap. Repeat the identical execution request
 and check that the run ID, saved output and ledger charge are unchanged.
+
+### View saved annual accounts
+
+The App presents supported structured annual accounts with named key figures,
+balance-sheet and income-statement tables, and numbers formatted for the
+browser's locale. The financial year and source dates remain visible. A currency
+is shown only when supplied by the source; the billing currency does not establish
+the currency of the accounts. The filing year may be older than the current year.
+
+Opening the full result reuses the saved data without another provider purchase.
+**Full source data** and JSON preserve the original response. CSV exports the
+labelled financial fields and their source values. The HTTP API continues to
+return source data rather than the App's display formatting.
 
 ## Optional multi-source planner
 
